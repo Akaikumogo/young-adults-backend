@@ -44,8 +44,8 @@ export class Course {
   @Prop()
   image?: string; // icon yoki image URL
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Teacher' }], default: [] })
-  teachers: Types.ObjectId[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Employee' }], default: [] })
+  employees: Types.ObjectId[];
 
   @Prop({ default: true })
   is_active: boolean;

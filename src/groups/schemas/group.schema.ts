@@ -29,8 +29,8 @@ export class Group {
   @Prop({ type: String })
   endTime?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Teacher', required: false })
-  teacher?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Employee', required: false })
+  employee?: Types.ObjectId;
 
   @Prop({ default: true })
   is_active: boolean;

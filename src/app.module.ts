@@ -23,6 +23,7 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { EventsModule } from './events/events.module';
 import { ClientStatisticsModule } from './client-statistics/client-statistics.module';
 import { UtilsModule } from './utils/utils.module';
+import { SlidesModule } from './slides/slides.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { UtilsModule } from './utils/utils.module';
     EventsModule,
     ClientStatisticsModule,
     UtilsModule,
+    SlidesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
