@@ -14,7 +14,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login with email/phone and password' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Login with email/phone and password (public - for landing page)' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ 
     status: 200, 
@@ -31,7 +32,7 @@ export class AuthController {
             full_name: { type: 'string' },
             email: { type: 'string' },
             phone: { type: 'string' },
-            role: { type: 'string', enum: ['admin', 'moderator', 'teacher'] },
+            role: { type: 'string', enum: ['admin', 'moderator', 'teacher', 'student'] },
             avatar_url: { type: 'string', nullable: true },
             is_active: { type: 'boolean' }
           }
@@ -74,7 +75,8 @@ export class AuthController {
 
   @Post('register-student')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register new student (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Register new student (public - for landing page registration)' })
   @ApiBody({ type: RegisterStudentDto })
   @ApiResponse({ 
     status: 201, 
@@ -82,12 +84,19 @@ export class AuthController {
     schema: {
       type: 'object',
       properties: {
-        _id: { type: 'string' },
-        full_name: { type: 'string' },
-        email: { type: 'string' },
-        phone: { type: 'string' },
-        role: { type: 'string', enum: ['student'] },
-        is_active: { type: 'boolean' }
+        token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+        refresh_token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+        user: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            full_name: { type: 'string' },
+            email: { type: 'string' },
+            phone: { type: 'string' },
+            role: { type: 'string', enum: ['student'] },
+            is_active: { type: 'boolean' }
+          }
+        }
       }
     }
   })
@@ -98,7 +107,8 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Refresh access token using refresh token (public - for landing page)' })
   @ApiBody({
     schema: {
       type: 'object',

@@ -74,7 +74,7 @@ export class UpdateCourseDto {
   @ApiProperty({ required: false, type: [String] })
   @IsArray()
   @IsOptional()
-  teacherIds?: string[];
+  employeeIds?: string[];
 
   @ApiProperty({ required: false, default: true })
   @IsBoolean()

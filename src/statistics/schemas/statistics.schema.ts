@@ -20,6 +20,9 @@ export class Statistics {
   @Prop({ type: String, default: '' })
   icon?: string;
 
+  @Prop({ type: String, default: '' })
+  image?: string;
+
   @Prop({ default: 0 })
   order: number;
 

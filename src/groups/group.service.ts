@@ -28,13 +28,13 @@ export class GroupsService {
       .populate('course')
       .populate({
         path: 'students',
-        select: 'full_name phone email avatar_url course teacher',
+        select: 'full_name phone email avatar_url course employee',
         populate: [
           { path: 'course', select: 'name' },
-          { path: 'teacher', select: 'full_name email' }
+          { path: 'employee', select: 'name email' }
         ]
       })
-      .populate('teacher')
+      .populate('employee')
       .exec();
   }
 
@@ -44,13 +44,13 @@ export class GroupsService {
       .populate('course')
       .populate({
         path: 'students',
-        select: 'full_name phone email avatar_url course teacher',
+        select: 'full_name phone email avatar_url course employee',
         populate: [
           { path: 'course', select: 'name' },
-          { path: 'teacher', select: 'full_name email' }
+          { path: 'employee', select: 'name email' }
         ]
       })
-      .populate('teacher')
+      .populate('employee')
       .exec();
 
     if (!group) {
@@ -66,13 +66,13 @@ export class GroupsService {
       .populate('course')
       .populate({
         path: 'students',
-        select: 'full_name phone email avatar_url course teacher',
+        select: 'full_name phone email avatar_url course employee',
         populate: [
           { path: 'course', select: 'name' },
-          { path: 'teacher', select: 'full_name email' }
+          { path: 'employee', select: 'name email' }
         ]
       })
-      .populate('teacher')
+      .populate('employee')
       .exec();
 
     if (!group) {
@@ -206,7 +206,7 @@ export class GroupsService {
         $or: [{ group: { $exists: false } }, { group: null }],
       })
       .populate('course')
-      .populate('teacher')
+      .populate('employee')
       .exec();
   }
 

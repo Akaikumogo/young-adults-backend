@@ -22,7 +22,8 @@ export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all active services (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get all active services (public - for landing page)' })
   @ApiResponse({ 
     status: 200, 
     description: 'List of active services retrieved successfully',

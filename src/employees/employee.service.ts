@@ -44,10 +44,10 @@ export class EmployeesService {
       .sort({ order: 1 })
       .exec();
     
-    // Get users with roles: teacher, admin, moderator
+    // Get users with role: teacher only (admin and moderator are excluded from public endpoint)
     const users = await this.usersService.findAll();
     const staffUsers = users.filter(user => 
-      ['teacher', 'admin', 'moderator'].includes(user.role) && user.is_active
+      user.role === 'teacher' && user.is_active
     );
     
     // Transform employees - convert image paths to full URLs
@@ -61,10 +61,8 @@ export class EmployeesService {
       _id: user._id,
       name: user.full_name,
       role: user.role,
-      birth: '', // User doesn't have birth field
       description1: '', // User doesn't have description field
       image: getImageUrl(user.avatar_url), // Use avatar_url as image and convert to full URL
-      slug: `user-${user._id}`, // Generate slug from user ID
       order: 1000 + index, // Put users after employees in order
       is_active: user.is_active,
       createdAt: user.createdAt,
@@ -108,10 +106,8 @@ export class EmployeesService {
       _id: user._id,
       name: user.full_name,
       role: user.role,
-      birth: '', // User doesn't have birth field
       description1: '', // User doesn't have description field
       image: getImageUrl(user.avatar_url), // Use avatar_url as image and convert to full URL
-      slug: `user-${user._id}`, // Generate slug from user ID
       order: 1000 + index, // Put users after employees in order
       is_active: user.is_active,
       createdAt: user.createdAt,
@@ -186,10 +182,34 @@ export class EmployeesService {
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.employeeModel.findByIdAndDelete(id).exec();
-    if (!result) {
-      throw new NotFoundException('Employee not found');
+    // First try to find in Employee collection
+    const employee = await this.employeeModel.findById(id).exec();
+    if (employee) {
+      await this.employeeModel.findByIdAndDelete(id).exec();
+      return;
     }
+    
+    // If not found in Employee collection, try User collection
+    // Check if it's a user with role teacher, admin, or moderator
+    try {
+      const user = await this.usersService.findOne(id);
+      if (user && ['teacher', 'admin', 'moderator'].includes(user.role)) {
+        await this.usersService.remove(id);
+        return;
+      } else if (user) {
+        // User found but not a staff user (not teacher/admin/moderator)
+        throw new NotFoundException('Employee not found - user is not a staff member');
+      }
+    } catch (error) {
+      // If it's already a NotFoundException, re-throw it
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      // Otherwise, user not found or other error - continue to throw NotFoundException below
+    }
+    
+    // If neither found, throw NotFoundException
+    throw new NotFoundException('Employee not found');
   }
 }
 

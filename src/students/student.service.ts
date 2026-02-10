@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { Student, StudentDocument } from './schemas/student.schema';
 import { Group, GroupDocument } from '../groups/schemas/group.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
-import { Teacher, TeacherDocument } from '../teachers/schemas/teacher.schema';
+import { Employee, EmployeeDocument } from '../employees/schemas/employee.schema';
 import { EnrollStudentDto } from './dto/enroll-student.dto';
 import { GradeStudentDto } from './dto/grade-student.dto';
 
@@ -14,7 +14,7 @@ export class StudentsService {
     @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
     @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
-    @InjectModel(Teacher.name) private teacherModel: Model<TeacherDocument>,
+    @InjectModel(Employee.name) private employeeModel: Model<EmployeeDocument>,
   ) {}
 
   async create(enrollStudentDto: EnrollStudentDto): Promise<StudentDocument> {
@@ -27,9 +27,9 @@ export class StudentsService {
       status: 'active',
     };
 
-    // Only set teacher if teacherId is provided
-    if (enrollStudentDto.teacherId && enrollStudentDto.teacherId.trim() !== '') {
-      studentData.teacher = enrollStudentDto.teacherId;
+    // Only set employee if employeeId is provided
+    if (enrollStudentDto.employeeId && enrollStudentDto.employeeId.trim() !== '') {
+      studentData.employee = enrollStudentDto.employeeId;
     }
 
     // Only set group if groupId is provided (admin/moderator can set this)
@@ -119,11 +119,11 @@ export class StudentsService {
       studentData.email = user.email;
     }
 
-    // Try to assign a teacher from the course if available
-    if (course.teachers && course.teachers.length > 0) {
-      // Get the first teacher from the course
-      const teacherId = course.teachers[0];
-      studentData.teacher = teacherId;
+    // Try to assign an employee from the course if available
+    if (course.employees && course.employees.length > 0) {
+      // Get the first employee from the course
+      const employeeId = course.employees[0];
+      studentData.employee = employeeId;
     }
 
     const student = new this.studentModel(studentData);
@@ -131,14 +131,14 @@ export class StudentsService {
   }
 
   async findAll(): Promise<StudentDocument[]> {
-    return this.studentModel.find().populate('course').populate('teacher').exec();
+    return this.studentModel.find().populate('course').populate('employee').exec();
   }
 
   async findOne(id: string): Promise<StudentDocument> {
     const student = await this.studentModel
       .findById(id)
       .populate('course')
-      .populate('teacher')
+      .populate('employee')
       .exec();
 
     if (!student) {
@@ -148,11 +148,11 @@ export class StudentsService {
     return student;
   }
 
-  async findByTeacher(teacherId: string): Promise<StudentDocument[]> {
+  async findByEmployee(employeeId: string): Promise<StudentDocument[]> {
     return this.studentModel
-      .find({ teacher: teacherId })
+      .find({ employee: employeeId })
       .populate('course')
-      .populate('teacher')
+      .populate('employee')
       .exec();
   }
 
@@ -160,24 +160,15 @@ export class StudentsService {
     return this.studentModel
       .find({ course: courseId })
       .populate('course')
-      .populate('teacher')
+      .populate('employee')
       .populate('group')
       .exec();
   }
 
-  async findByTeacherCourses(teacherUserId: string): Promise<StudentDocument[]> {
-    // Find teacher entity by user ID
-    const teacher = await this.teacherModel.findOne({ user: teacherUserId }).exec();
-    
-    if (!teacher) {
-      // If no teacher entity exists, return empty array
-      return [];
-    }
-    
-    // Find all courses where this teacher is assigned
-    // Course.teachers contains Teacher ObjectIds
+  async findByEmployeeCourses(employeeId: string): Promise<StudentDocument[]> {
+    // Find all courses where this employee is assigned
     const courses = await this.courseModel
-      .find({ teachers: teacher._id })
+      .find({ employees: employeeId })
       .select('_id')
       .lean()
       .exec();
@@ -188,11 +179,11 @@ export class StudentsService {
       return [];
     }
     
-    // Find all students whose course is in the teacher's courses
+    // Find all students whose course is in the employee's courses
     return this.studentModel
       .find({ course: { $in: courseIds } })
       .populate('course')
-      .populate('teacher')
+      .populate('employee')
       .populate('group')
       .exec();
   }
@@ -203,7 +194,7 @@ export class StudentsService {
       page?: number;
       limit?: number;
       search?: string;
-      teacherId?: string;
+      employeeId?: string;
       groupId?: string;
       status?: string;
     }
@@ -221,8 +212,8 @@ export class StudentsService {
     // Build filter
     const filter: any = { course: courseId };
 
-    if (query.teacherId) {
-      filter.teacher = query.teacherId;
+    if (query.employeeId) {
+      filter.employee = query.employeeId;
     }
 
     if (query.groupId) {
@@ -249,7 +240,7 @@ export class StudentsService {
     const data = await this.studentModel
       .find(filter)
       .populate('course', 'name description duration')
-      .populate('teacher', 'full_name email phone')
+      .populate('employee', 'name email phone')
       .populate('group', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -271,7 +262,7 @@ export class StudentsService {
     const student = await this.studentModel
       .findByIdAndUpdate(id, updateData, { new: true })
       .populate('course')
-      .populate('teacher')
+      .populate('employee')
       .exec();
 
     if (!student) {

@@ -7,7 +7,6 @@ import databaseConfig from './config/database.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/user.module';
 import { CoursesModule } from './courses/course.module';
-import { TeachersModule } from './teachers/teacher.module';
 import { StudentsModule } from './students/student.module';
 import { ServicesModule } from './services/service.module';
 import { EmployeesModule } from './employees/employee.module';
@@ -23,7 +22,7 @@ import { StatisticsModule } from './statistics/statistics.module';
 import { EventsModule } from './events/events.module';
 import { ClientStatisticsModule } from './client-statistics/client-statistics.module';
 import { UtilsModule } from './utils/utils.module';
-import { SlidesModule } from './slides/slides.module';
+import { ApplicationsModule } from './applications/applications.module';
 
 @Module({
   imports: [
@@ -36,7 +35,6 @@ import { SlidesModule } from './slides/slides.module';
     AuthModule,
     UsersModule,
     CoursesModule,
-    TeachersModule,
     StudentsModule,
     GroupsModule,
     ServicesModule,
@@ -52,7 +50,7 @@ import { SlidesModule } from './slides/slides.module';
     EventsModule,
     ClientStatisticsModule,
     UtilsModule,
-    SlidesModule,
+    ApplicationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

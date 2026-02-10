@@ -13,8 +13,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiBody, ApiParam } 
 import { CoursesService } from './course.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { AssignTeacherDto } from './dto/assign-teacher.dto';
-import { TeacherResponseDto } from './dto/teacher-response.dto';
+import { AssignEmployeeDto } from './dto/assign-employee.dto';
+import { EmployeeResponseDto } from './dto/employee-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,7 +28,8 @@ export class CoursesController {
 
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
-  @ApiOperation({ summary: 'Get all courses (filtered by role - public access with optional auth)' })
+  @ApiTags('client', 'courses')
+  @ApiOperation({ summary: 'Get all courses (public - for landing page)' })
   @ApiResponse({ 
     status: 200, 
     description: 'List of courses retrieved successfully',
@@ -43,7 +44,7 @@ export class CoursesController {
           duration: { type: 'string' },
           price: { type: 'number' },
           image_url: { type: 'string', nullable: true },
-          teachers: { type: 'array', items: { type: 'string' } },
+          employees: { type: 'array', items: { type: 'string' } },
           is_active: { type: 'boolean' },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' }
@@ -55,16 +56,17 @@ export class CoursesController {
     // Check if user is authenticated (from JWT guard if token is present)
     const user = (req as any).user;
     
-    // If user is a teacher, return only their courses
+    // If user is a teacher, return only their courses (deprecated - use employee instead)
     if (user && user.role === 'teacher') {
-      return this.coursesService.findByTeacher(user._id.toString());
+      return this.coursesService.findByEmployee(user._id.toString());
     }
     // Admin, moderator, and unauthenticated users see all courses
     return this.coursesService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get course by ID (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get course by ID (public - for landing page)' })
   @ApiParam({ name: 'id', description: 'Course ID' })
   @ApiResponse({ 
     status: 200, 
@@ -77,9 +79,9 @@ export class CoursesController {
         description: { type: 'string' },
         duration: { type: 'string' },
         price: { type: 'number' },
-        image_url: { type: 'string', nullable: true },
-        teachers: { type: 'array', items: { type: 'string' } },
-        is_active: { type: 'boolean' },
+          image_url: { type: 'string', nullable: true },
+          employees: { type: 'array', items: { type: 'string' } },
+          is_active: { type: 'boolean' },
         createdAt: { type: 'string', format: 'date-time' },
         updatedAt: { type: 'string', format: 'date-time' }
       }
@@ -141,21 +143,21 @@ export class CoursesController {
     return this.coursesService.findOneWithDetails(id);
   }
 
-  @Get(':id/teachers')
+  @Get(':id/employees')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'moderator', 'teacher')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get teachers assigned to a course' })
+  @ApiOperation({ summary: 'Get employees assigned to a course' })
   @ApiParam({ name: 'id', description: 'Course ID' })
   @ApiResponse({ 
     status: 200, 
-    description: 'List of teachers retrieved successfully',
-    type: [TeacherResponseDto]
+    description: 'List of employees retrieved successfully',
+    type: [EmployeeResponseDto]
   })
   @ApiResponse({ status: 400, description: 'Invalid course ID format' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  getCourseTeachers(@Param('id') id: string): Promise<TeacherResponseDto[]> {
-    return this.coursesService.getCourseTeachers(id);
+  getCourseEmployees(@Param('id') id: string): Promise<EmployeeResponseDto[]> {
+    return this.coursesService.getCourseEmployees(id);
   }
 
   @Post()
@@ -208,9 +210,9 @@ export class CoursesController {
         description: { type: 'string' },
         duration: { type: 'string' },
         price: { type: 'number' },
-        image_url: { type: 'string', nullable: true },
-        teachers: { type: 'array', items: { type: 'string' } },
-        is_active: { type: 'boolean' },
+          image_url: { type: 'string', nullable: true },
+          employees: { type: 'array', items: { type: 'string' } },
+          is_active: { type: 'boolean' },
         updatedAt: { type: 'string', format: 'date-time' }
       }
     }
@@ -247,32 +249,32 @@ export class CoursesController {
     return this.coursesService.remove(id);
   }
 
-  @Post(':id/assign-teacher')
+  @Post(':id/assign-employee')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('moderator', 'admin')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Assign teachers to course (moderator/admin)' })
+  @ApiOperation({ summary: 'Assign employees to course (moderator/admin)' })
   @ApiParam({ name: 'id', description: 'Course ID' })
-  @ApiBody({ type: AssignTeacherDto })
+  @ApiBody({ type: AssignEmployeeDto })
   @ApiResponse({ 
     status: 200, 
-    description: 'Teachers assigned successfully',
+    description: 'Employees assigned successfully',
     schema: {
       type: 'object',
       properties: {
         _id: { type: 'string' },
         title: { type: 'string' },
-        teachers: { type: 'array', items: { type: 'string' } },
+        employees: { type: 'array', items: { type: 'string' } },
         updatedAt: { type: 'string', format: 'date-time' }
       }
     }
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid teacher IDs' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid employee IDs' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  assignTeachers(@Param('id') id: string, @Body() assignTeacherDto: AssignTeacherDto) {
-    return this.coursesService.assignTeachers(id, assignTeacherDto);
+  assignEmployees(@Param('id') id: string, @Body() assignEmployeeDto: AssignEmployeeDto) {
+    return this.coursesService.assignEmployees(id, assignEmployeeDto);
   }
 }
 

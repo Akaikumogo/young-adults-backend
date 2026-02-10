@@ -42,7 +42,7 @@ export class StudentsController {
         email: { type: 'string' },
         phone: { type: 'string' },
         courseId: { type: 'string' },
-        teacherId: { type: 'string', nullable: true },
+        employeeId: { type: 'string', nullable: true },
         groupId: { type: 'string', nullable: true },
         status: { type: 'string', enum: ['active', 'completed', 'dropped'], default: 'active' },
         grades: { type: 'object', default: {} },
@@ -104,7 +104,7 @@ export class StudentsController {
           email: { type: 'string' },
           phone: { type: 'string' },
           courseId: { type: 'string' },
-          teacherId: { type: 'string' },
+          employeeId: { type: 'string' },
           groupId: { type: 'string' },
           status: { type: 'string', enum: ['active', 'completed', 'dropped'] },
           grades: { type: 'object' },
@@ -118,18 +118,18 @@ export class StudentsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async findAll(@CurrentUser() user: any) {
-    // If user is a teacher, return only students from their courses
+    // If user is a teacher, return only students from their courses (deprecated - use employee instead)
     if (user && user.role === 'teacher') {
-      return this.studentsService.findByTeacherCourses(user._id.toString());
+      return this.studentsService.findByEmployeeCourses(user._id.toString());
     }
     // Admin and moderator see all students
     return this.studentsService.findAll();
   }
 
-  @Get('teacher/:teacherId')
+  @Get('employee/:employeeId')
   @Roles('admin', 'moderator', 'teacher')
-  @ApiOperation({ summary: 'Get students by teacher' })
-  @ApiParam({ name: 'teacherId', description: 'Teacher ID' })
+  @ApiOperation({ summary: 'Get students by employee' })
+  @ApiParam({ name: 'employeeId', description: 'Employee ID' })
   @ApiResponse({ 
     status: 200, 
     description: 'List of students retrieved successfully',
@@ -143,7 +143,7 @@ export class StudentsController {
           email: { type: 'string' },
           phone: { type: 'string' },
           courseId: { type: 'string' },
-          teacherId: { type: 'string' },
+          employeeId: { type: 'string' },
           groupId: { type: 'string' },
           status: { type: 'string', enum: ['active', 'completed', 'dropped'] },
           grades: { type: 'object' },
@@ -153,13 +153,13 @@ export class StudentsController {
     }
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Cannot access other teachers students' })
-  findByTeacher(@Param('teacherId') teacherId: string, @CurrentUser() user: any) {
-    // Check if teacher is accessing their own students
-    if (user.role === 'teacher' && user._id.toString() !== teacherId) {
+  @ApiResponse({ status: 403, description: 'Forbidden - Cannot access other employees students' })
+  findByEmployee(@Param('employeeId') employeeId: string, @CurrentUser() user: any) {
+    // Check if employee is accessing their own students
+    if (user.role === 'teacher' && user._id.toString() !== employeeId) {
       throw new Error('Unauthorized');
     }
-    return this.studentsService.findByTeacher(teacherId);
+    return this.studentsService.findByEmployee(employeeId);
   }
 
   @Get('course/:courseId')
@@ -169,7 +169,7 @@ export class StudentsController {
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by name, email, or phone' })
-  @ApiQuery({ name: 'teacherId', required: false, type: String, description: 'Filter by teacher ID' })
+  @ApiQuery({ name: 'employeeId', required: false, type: String, description: 'Filter by employee ID' })
   @ApiQuery({ name: 'groupId', required: false, type: String, description: 'Filter by group ID' })
   @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by status (active, completed, dropped)' })
   @ApiResponse({ 
@@ -190,7 +190,7 @@ export class StudentsController {
                   email: { type: 'string' },
                   phone: { type: 'string' },
                   courseId: { type: 'string' },
-                  teacherId: { type: 'string' },
+                  employeeId: { type: 'string' },
                   groupId: { type: 'string' },
                   status: { type: 'string' }
                 }
@@ -212,7 +212,7 @@ export class StudentsController {
               email: { type: 'string' },
               phone: { type: 'string' },
               courseId: { type: 'string' },
-              teacherId: { type: 'string' },
+              employeeId: { type: 'string' },
               groupId: { type: 'string' },
               status: { type: 'string' }
             }
@@ -228,7 +228,7 @@ export class StudentsController {
     @Query() query: QueryStudentsDto,
   ) {
     // If pagination params are provided, use paginated endpoint
-    if (query.page || query.limit || query.search || query.teacherId || query.groupId || query.status) {
+    if (query.page || query.limit || query.search || query.employeeId || query.groupId || query.status) {
       return this.studentsService.findByCourseWithPagination(courseId, query);
     }
     // Otherwise return all students (backward compatibility)
@@ -250,7 +250,7 @@ export class StudentsController {
         email: { type: 'string' },
         phone: { type: 'string' },
         courseId: { type: 'string' },
-        teacherId: { type: 'string' },
+        employeeId: { type: 'string' },
         groupId: { type: 'string' },
         status: { type: 'string', enum: ['active', 'completed', 'dropped'] },
         grades: { type: 'object' },
@@ -279,7 +279,7 @@ export class StudentsController {
         email: { type: 'string', example: 'john@example.com' },
         phone: { type: 'string', example: '+998901234567' },
         courseId: { type: 'string', example: 'courseId123' },
-        teacherId: { type: 'string', example: 'teacherId123' },
+        employeeId: { type: 'string', example: 'employeeId123' },
         groupId: { type: 'string', example: 'groupId123' },
         status: { type: 'string', enum: ['active', 'completed', 'dropped'], example: 'active' },
         grades: { 
@@ -311,7 +311,7 @@ export class StudentsController {
         email: { type: 'string' },
         phone: { type: 'string' },
         courseId: { type: 'string' },
-        teacherId: { type: 'string' },
+        employeeId: { type: 'string' },
         groupId: { type: 'string' },
         status: { type: 'string', enum: ['active', 'completed', 'dropped'] },
         grades: { type: 'object' },

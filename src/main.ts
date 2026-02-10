@@ -86,7 +86,7 @@ async function bootstrap() {
     .addTag('courses', 'Course management endpoints')
     .addTag('students', 'Student management endpoints')
     .addTag('groups', 'Group management endpoints')
-    .addTag('teachers', 'Teacher endpoints')
+    .addTag('client', 'Client API endpoints (Landing Page - Public GET and POST endpoints)')
     .addTag('services', 'Service management endpoints')
     .addTag('employees', 'Employee management endpoints')
     .addTag('locations', 'Location management endpoints')

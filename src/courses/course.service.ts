@@ -2,34 +2,36 @@ import { Injectable, NotFoundException, Inject, forwardRef, BadRequestException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Course, CourseDocument } from './schemas/course.schema';
-import { Teacher, TeacherDocument } from '../teachers/schemas/teacher.schema';
+import { Employee, EmployeeDocument } from '../employees/schemas/employee.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { Student, StudentDocument } from '../students/schemas/student.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
-import { AssignTeacherDto } from './dto/assign-teacher.dto';
-import { TeacherResponseDto } from './dto/teacher-response.dto';
+import { AssignEmployeeDto } from './dto/assign-employee.dto';
+import { EmployeeResponseDto } from './dto/employee-response.dto';
 import { GroupsService } from '../groups/group.service';
 
 @Injectable()
 export class CoursesService {
   constructor(
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
-    @InjectModel(Teacher.name) private teacherModel: Model<TeacherDocument>,
+    @InjectModel(Employee.name) private employeeModel: Model<EmployeeDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
     @Inject(forwardRef(() => GroupsService))
     private groupsService: GroupsService,
   ) {}
 
   async create(createCourseDto: CreateCourseDto): Promise<Course> {
-    // Convert teacherIds to teachers ObjectId array
+    // Convert employeeIds to employees ObjectId array
     const courseData: any = { ...createCourseDto };
     
-    if (createCourseDto.teacherIds && createCourseDto.teacherIds.length > 0) {
-      // Validate and convert teacherIds to ObjectId array
+    if (createCourseDto.employeeIds && createCourseDto.employeeIds.length > 0) {
+      // Validate and convert employeeIds to ObjectId array
       try {
-        courseData.teachers = createCourseDto.teacherIds.map(id => {
+        courseData.employees = createCourseDto.employeeIds.map(id => {
           if (!Types.ObjectId.isValid(id)) {
-            throw new BadRequestException(`Invalid teacher ID: ${id}`);
+            throw new BadRequestException(`Invalid employee ID: ${id}`);
           }
           return new Types.ObjectId(id);
         });
@@ -37,19 +39,35 @@ export class CoursesService {
         if (error instanceof BadRequestException) {
           throw error;
         }
-        throw new BadRequestException('Invalid teacher IDs format');
+        throw new BadRequestException('Invalid employee IDs format');
       }
-      delete courseData.teacherIds;
+      delete courseData.employeeIds;
     } else {
-      courseData.teachers = [];
+      courseData.employees = [];
     }
 
     const course = new this.courseModel(courseData);
     return course.save();
   }
 
-  async findAll(): Promise<Course[]> {
-    return this.courseModel.find().populate('teachers').exec();
+  async findAll(): Promise<any[]> {
+    const courses = await this.courseModel.find().populate('employees').lean().exec();
+    
+    // Get students count for each course
+    const coursesWithCounts = await Promise.all(
+      courses.map(async (course: any) => {
+        const studentsCount = await this.studentModel.countDocuments({ 
+          course: course._id,
+          status: { $ne: 'dropped' } // Only count active and completed students
+        }).exec();
+        return {
+          ...course,
+          studentsCount,
+        };
+      })
+    );
+    
+    return coursesWithCounts;
   }
 
   async findOne(id: string): Promise<any> {
@@ -60,12 +78,13 @@ export class CoursesService {
 
     const course = await this.courseModel
       .findById(id)
-      .populate({
-        path: 'teachers',
-        populate: {
-          path: 'user',
-          select: 'full_name email phone avatar_url is_active role',
-        },
+        .populate({
+        path: 'employees',
+        select: 'name email phone image position_id department_id is_active',
+        populate: [
+          { path: 'position_id', select: 'name' },
+          { path: 'department_id', select: 'name' }
+        ]
       })
       .lean()
       .exec();
@@ -74,53 +93,49 @@ export class CoursesService {
       throw new NotFoundException('Course not found');
     }
 
-    // Transform teachers array to include full user data
-    if (course.teachers && Array.isArray(course.teachers) && course.teachers.length > 0) {
-      const transformedTeachers = course.teachers
-        .filter((teacher: any) => {
-          return teacher && typeof teacher === 'object' && teacher._id && teacher.user;
+    // Transform employees array to include full data
+    if (course.employees && Array.isArray(course.employees) && course.employees.length > 0) {
+      const transformedEmployees = course.employees
+        .filter((employee: any) => {
+          return employee && typeof employee === 'object' && employee._id;
         })
-        .map((teacher: any) => {
-          if (teacher.user && typeof teacher.user === 'object' && teacher.user._id) {
-            return {
-              _id: teacher.user._id.toString(),
-              full_name: teacher.user.full_name || '',
-              email: teacher.user.email || '',
-              phone: teacher.user.phone || '',
-              avatar_url: teacher.user.avatar_url || null,
-              is_active: teacher.user.is_active !== undefined ? teacher.user.is_active : true,
-              role: (teacher.user.role || 'teacher') as string,
-              bio: teacher.bio || null,
-              specialization: teacher.specialization || null,
-            };
-          }
-          return null;
+        .map((employee: any) => {
+          return {
+            _id: employee._id.toString(),
+            full_name: employee.name || '',
+            email: employee.email || '',
+            phone: employee.phone || '',
+            image: employee.image || null,
+            position: employee.position_id ? (employee.position_id as any)?.name || null : null,
+            department: employee.department_id ? (employee.department_id as any)?.name || null : null,
+            is_active: employee.is_active !== undefined ? employee.is_active : true,
+          };
         })
-        .filter((teacher: any) => teacher !== null);
+        .filter((employee: any) => employee !== null);
 
       return {
         ...course,
-        teachers: transformedTeachers,
+        employees: transformedEmployees,
       };
     }
 
     return {
       ...course,
-      teachers: [],
+      employees: [],
     };
   }
 
   async update(id: string, updateCourseDto: UpdateCourseDto): Promise<Course> {
-    // Convert teacherIds to teachers ObjectId array if provided
+    // Convert employeeIds to employees ObjectId array if provided
     const updateData: any = { ...updateCourseDto };
     
-    if (updateCourseDto.teacherIds !== undefined) {
-      if (updateCourseDto.teacherIds.length > 0) {
-        // Validate and convert teacherIds to ObjectId array
+    if (updateCourseDto.employeeIds !== undefined) {
+      if (updateCourseDto.employeeIds.length > 0) {
+        // Validate and convert employeeIds to ObjectId array
         try {
-          updateData.teachers = updateCourseDto.teacherIds.map(id => {
+          updateData.employees = updateCourseDto.employeeIds.map(id => {
             if (!Types.ObjectId.isValid(id)) {
-              throw new BadRequestException(`Invalid teacher ID: ${id}`);
+              throw new BadRequestException(`Invalid employee ID: ${id}`);
             }
             return new Types.ObjectId(id);
           });
@@ -128,17 +143,17 @@ export class CoursesService {
           if (error instanceof BadRequestException) {
             throw error;
           }
-          throw new BadRequestException('Invalid teacher IDs format');
+          throw new BadRequestException('Invalid employee IDs format');
         }
       } else {
-        updateData.teachers = [];
+        updateData.employees = [];
       }
-      delete updateData.teacherIds;
+      delete updateData.employeeIds;
     }
 
     const course = await this.courseModel
       .findByIdAndUpdate(id, updateData, { new: true })
-      .populate('teachers')
+      .populate('employees')
       .exec();
 
     if (!course) {
@@ -155,17 +170,17 @@ export class CoursesService {
     }
   }
 
-  async assignTeachers(id: string, assignTeacherDto: AssignTeacherDto): Promise<Course> {
+  async assignEmployees(id: string, assignEmployeeDto: AssignEmployeeDto): Promise<Course> {
     const course = await this.courseModel.findById(id).exec();
     if (!course) {
       throw new NotFoundException('Course not found');
     }
 
-    // Validate and convert teacherIds to ObjectId array
+    // Validate and convert employeeIds to ObjectId array
     try {
-      course.teachers = assignTeacherDto.teacherIds.map(id => {
+      course.employees = assignEmployeeDto.employeeIds.map(id => {
         if (!Types.ObjectId.isValid(id)) {
-          throw new BadRequestException(`Invalid teacher ID: ${id}`);
+          throw new BadRequestException(`Invalid employee ID: ${id}`);
         }
         return new Types.ObjectId(id);
       });
@@ -173,26 +188,17 @@ export class CoursesService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException('Invalid teacher IDs format');
+      throw new BadRequestException('Invalid employee IDs format');
     }
 
     return course.save();
   }
 
-  async findByTeacher(teacherUserId: string): Promise<Course[]> {
-    // Find the Teacher entity by user ID
-    const teacher = await this.teacherModel.findOne({ user: teacherUserId }).exec();
-    
-    if (!teacher) {
-      // If no teacher entity exists, return empty array
-      return [];
-    }
-    
-    // Find courses where the teacher's _id is in the teachers array
-    // Course.teachers contains Teacher ObjectIds
+  async findByEmployee(employeeId: string): Promise<Course[]> {
+    // Find courses where the employee's _id is in the employees array
     return this.courseModel
-      .find({ teachers: teacher._id })
-      .populate('teachers')
+      .find({ employees: employeeId })
+      .populate('employees')
       .exec();
   }
 
@@ -201,14 +207,21 @@ export class CoursesService {
     const groups = await this.groupsService.findAll(id);
     const unassignedStudents = await this.groupsService.getUnassignedStudents(id);
     
+    // Get students count
+    const studentsCount = await this.studentModel.countDocuments({ 
+      course: id,
+      status: { $ne: 'dropped' } // Only count active and completed students
+    }).exec();
+    
     return {
       ...(course as any).toObject ? (course as any).toObject() : course,
       groups,
       unassignedStudents,
+      studentsCount,
     };
   }
 
-  async getCourseTeachers(courseId: string): Promise<TeacherResponseDto[]> {
+  async getCourseEmployees(courseId: string): Promise<EmployeeResponseDto[]> {
     // Validate courseId format
     if (!Types.ObjectId.isValid(courseId)) {
       throw new BadRequestException('Invalid course ID format');
@@ -223,19 +236,13 @@ export class CoursesService {
       throw new NotFoundException('Course not found');
     }
 
-    // Debug: Log course teachers
-    console.log('Course teachers (raw):', course.teachers);
-    console.log('Course teachers type:', typeof course.teachers);
-    console.log('Course teachers is array:', Array.isArray(course.teachers));
-
-    // Check if course has teachers assigned
-    if (!course.teachers || !Array.isArray(course.teachers) || course.teachers.length === 0) {
-      console.log('No teachers assigned to course');
+    // Check if course has employees assigned
+    if (!course.employees || !Array.isArray(course.employees) || course.employees.length === 0) {
       return [];
     }
 
-    // Convert teacher IDs to ObjectId array
-    const teacherIds = course.teachers
+    // Convert employee IDs to ObjectId array
+    const employeeIds = course.employees
       .map((id: any) => {
         // Handle both string and ObjectId formats
         if (id) {
@@ -256,93 +263,36 @@ export class CoursesService {
       })
       .filter((id: any) => id !== null) as Types.ObjectId[];
 
-    console.log('Converted teacher IDs:', teacherIds.map(id => id.toString()));
-
-    if (teacherIds.length === 0) {
-      console.log('No valid teacher IDs found');
+    if (employeeIds.length === 0) {
       return [];
     }
 
-    // First, try to find teachers by Teacher collection
-    let teachers = await this.teacherModel
-      .find({ _id: { $in: teacherIds } })
-      .populate({
-        path: 'user',
-        select: 'full_name email phone avatar_url is_active role',
-        model: 'User',
-      })
+    // Find employees
+    const employees = await this.employeeModel
+      .find({ _id: { $in: employeeIds } })
       .lean()
       .exec();
 
-    console.log('Found teachers in Teacher collection:', teachers?.length || 0);
-
-    // If no teachers found in Teacher collection, try to find by User collection
-    // This handles the case where Course.teachers might contain User IDs instead of Teacher IDs
-    if (!teachers || teachers.length === 0) {
-      console.log('No teachers found in Teacher collection, trying User collection...');
-      
-      // Find users with teacher role
-      const users = await this.userModel
-        .find({ 
-          _id: { $in: teacherIds },
-          role: 'teacher'
-        })
-        .select('full_name email phone avatar_url is_active role')
-        .lean()
-        .exec();
-
-      console.log('Found users with teacher role:', users?.length || 0);
-
-      if (users && users.length > 0) {
-        // Transform users to teacher format
-        const transformedTeachers = users.map((user: any) => {
-          return {
-            _id: user._id.toString(),
-            full_name: user.full_name || '',
-            email: user.email || '',
-            phone: user.phone || '',
-            avatar_url: user.avatar_url || null,
-            is_active: user.is_active !== undefined ? user.is_active : true,
-            role: (user.role || 'teacher') as string,
-            bio: null,
-            specialization: null,
-          };
-        });
-
-        console.log('Transformed users to teachers:', transformedTeachers.length);
-        return transformedTeachers;
-      }
-
-      console.log('No teachers found in User collection either');
+    if (!employees || employees.length === 0) {
       return [];
     }
 
-    // Transform teachers array to frontend format
-    const transformedTeachers = teachers
-      .filter((teacher: any) => {
-        // Only include if teacher has populated user
-        const hasUser = teacher && teacher.user && typeof teacher.user === 'object' && teacher.user._id;
-        if (!hasUser) {
-          console.log('Teacher without user:', teacher._id);
-        }
-        return hasUser;
-      })
-      .map((teacher: any) => {
-        return {
-          _id: teacher.user._id.toString(),
-          full_name: teacher.user.full_name || '',
-          email: teacher.user.email || '',
-          phone: teacher.user.phone || '',
-          avatar_url: teacher.user.avatar_url || null,
-          is_active: teacher.user.is_active !== undefined ? teacher.user.is_active : true,
-          role: (teacher.user.role || 'teacher') as string,
-          bio: teacher.bio || null,
-          specialization: teacher.specialization || null,
-        };
-      });
+    // Transform employees array to frontend format
+    const transformedEmployees = employees
+      .map((employee: any) => {
+          return {
+            _id: employee._id.toString(),
+            full_name: employee.name || '',
+            email: employee.email || '',
+            phone: employee.phone || '',
+            image: employee.image || null,
+            position: employee.position_id ? (typeof employee.position_id === 'object' ? employee.position_id.name : null) : null,
+            department: employee.department_id ? (typeof employee.department_id === 'object' ? employee.department_id.name : null) : null,
+            is_active: employee.is_active !== undefined ? employee.is_active : true,
+          };
+        });
 
-    console.log('Transformed teachers:', transformedTeachers.length);
-    return transformedTeachers;
+    return transformedEmployees;
   }
 }
 

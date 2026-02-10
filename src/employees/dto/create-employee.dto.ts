@@ -7,15 +7,10 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'IT Specialist' })
+  @ApiProperty({ example: 'IT Specialist', enum: ['teacher', 'admin', 'moderator', 'IT Specialist', 'Manager', 'Director', 'Coordinator', 'Consultant'] })
   @IsString()
   @IsNotEmpty()
   role: string;
-
-  @ApiProperty({ example: 'Born in 1990' })
-  @IsString()
-  @IsNotEmpty()
-  birth: string;
 
   @ApiProperty({ example: 'Description text...' })
   @IsString()
@@ -26,11 +21,6 @@ export class CreateEmployeeDto {
   @IsString()
   @IsNotEmpty()
   image: string;
-
-  @ApiProperty({ example: 'john-doe' })
-  @IsString()
-  @IsNotEmpty()
-  slug: string;
 
   @ApiProperty({ example: 0, required: false })
   @IsNumber()

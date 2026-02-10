@@ -22,7 +22,8 @@ export class ContactController {
   constructor(private readonly contactService: ContactService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Submit contact form (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Submit contact form (public - for landing page registration)' })
   @ApiBody({ type: CreateContactDto })
   @ApiResponse({ 
     status: 201, 

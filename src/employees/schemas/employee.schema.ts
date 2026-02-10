@@ -12,16 +12,10 @@ export class Employee {
   role: string;
 
   @Prop({ required: true })
-  birth: string;
-
-  @Prop({ required: true })
   description1: string;
 
   @Prop({ required: true })
   image: string; // Image URL
-
-  @Prop({ required: true, unique: true })
-  slug: string;
 
   @Prop({ default: 0 })
   order: number;

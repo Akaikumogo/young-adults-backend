@@ -12,7 +12,8 @@ export class AboutController {
   constructor(private readonly aboutService: AboutService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get about content (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get about content (public - for landing page)' })
   @ApiResponse({ 
     status: 200, 
     description: 'About content retrieved successfully',

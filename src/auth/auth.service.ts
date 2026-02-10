@@ -74,8 +74,33 @@ export class AuthService {
       ...registerStudentDto,
       role: 'student' as any,
     });
-    const { password: _, ...result } = (user as UserDocument).toObject();
-    return result;
+    
+    // Generate tokens for the newly registered student
+    const payload = { email: user.email, sub: user._id, role: user.role };
+    
+    const accessToken = this.jwtService.sign(payload);
+    
+    const refreshTokenExpiresIn = this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN') || '30d';
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('REFRESH_TOKEN_SECRET') || 'your-refresh-secret',
+      expiresIn: refreshTokenExpiresIn,
+    } as any);
+    
+    const { password: _, ...userResult } = (user as UserDocument).toObject();
+    
+    return {
+      token: accessToken,
+      refresh_token: refreshToken,
+      user: {
+        _id: user._id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar_url: user.avatar_url,
+        is_active: user.is_active,
+      },
+    };
   }
 
   async refreshToken(refreshToken: string) {

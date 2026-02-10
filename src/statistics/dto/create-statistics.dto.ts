@@ -27,6 +27,11 @@ export class CreateStatisticsDto {
   @IsOptional()
   icon?: string;
 
+  @ApiProperty({ example: 'http://localhost:3000/uploads/statistics-icon.png', required: false })
+  @IsString()
+  @IsOptional()
+  image?: string;
+
   @ApiProperty({ example: 0, required: false })
   @IsNumber()
   @IsOptional()

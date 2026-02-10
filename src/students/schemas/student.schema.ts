@@ -20,8 +20,8 @@ export class Student {
   @Prop({ type: Types.ObjectId, ref: 'Group', required: false })
   group?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Teacher', required: false })
-  teacher?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Employee', required: false })
+  employee?: Types.ObjectId;
 
   @Prop({ default: Date.now })
   enrollment_date: Date;

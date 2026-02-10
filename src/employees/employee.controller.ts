@@ -23,7 +23,8 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all active employees (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get all active employees (public - for landing page)' })
   @ApiResponse({ 
     status: 200, 
     description: 'List of active employees retrieved successfully',

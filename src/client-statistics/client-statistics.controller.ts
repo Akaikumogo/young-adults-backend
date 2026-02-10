@@ -53,7 +53,8 @@ export class ClientStatisticsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all active client statistics (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get all active client statistics (public - for landing page)' })
   @ApiResponse({
     status: 200,
     description: 'List of active client statistics retrieved successfully',

@@ -22,7 +22,8 @@ export class LocationsController {
   constructor(private readonly locationsService: LocationsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all active locations (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get all active locations (public - for landing page)' })
   @ApiResponse({ 
     status: 200, 
     description: 'List of active locations retrieved successfully',

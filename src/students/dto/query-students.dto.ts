@@ -23,10 +23,10 @@ export class QueryStudentsDto {
   @IsString()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by teacher ID', example: 'teacherId123' })
+  @ApiPropertyOptional({ description: 'Filter by employee ID', example: 'employeeId123' })
   @IsOptional()
   @IsString()
-  teacherId?: string;
+  employeeId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by group ID', example: 'groupId123' })
   @IsOptional()

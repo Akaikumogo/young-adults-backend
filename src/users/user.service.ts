@@ -1,18 +1,15 @@
-import { Injectable, ConflictException, NotFoundException, UnauthorizedException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { TeachersService } from '../teachers/teacher.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @Inject(forwardRef(() => TeachersService))
-    private teachersService: TeachersService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserDocument> {
@@ -32,16 +29,8 @@ export class UsersService {
 
     const savedUser = await user.save();
 
-    // If role is teacher, create teacher profile
-    if (createUserDto.role === 'teacher') {
-      try {
-        await this.teachersService.create(savedUser._id.toString());
-      } catch (error) {
-        // If teacher profile already exists, ignore the error
-        // This can happen if user was created but teacher profile creation failed
-        console.error('Error creating teacher profile:', error);
-      }
-    }
+    // Note: Teacher profile creation removed as Teachers module is deprecated
+    // Teachers are now managed through Employees
 
     return savedUser;
   }

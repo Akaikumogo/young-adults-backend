@@ -41,7 +41,7 @@ export class CreateGroupDto {
   @ApiProperty({ required: false, example: '507f1f77bcf86cd799439011' })
   @IsMongoId()
   @IsOptional()
-  teacher?: string;
+  employee?: string;
 
   @ApiProperty({ required: false, default: true })
   @IsBoolean()

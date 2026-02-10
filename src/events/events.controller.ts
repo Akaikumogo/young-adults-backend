@@ -56,7 +56,8 @@ export class EventsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all active events (public)' })
+  @ApiTags('client')
+  @ApiOperation({ summary: 'Get all active events (public - for landing page)' })
   @ApiResponse({
     status: 200,
     description: 'List of active events retrieved successfully',
