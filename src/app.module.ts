@@ -23,6 +23,7 @@ import { EventsModule } from './events/events.module';
 import { ClientStatisticsModule } from './client-statistics/client-statistics.module';
 import { UtilsModule } from './utils/utils.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { HeroModule } from './hero/hero.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ApplicationsModule } from './applications/applications.module';
     ClientStatisticsModule,
     UtilsModule,
     ApplicationsModule,
+    HeroModule,
   ],
   controllers: [AppController],
   providers: [AppService],

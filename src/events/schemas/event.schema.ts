@@ -23,8 +23,8 @@ export class Event {
   @Prop({ required: true, default: '' })
   eventDescription_ru: string;
 
-  @Prop({ required: true })
-  eventImage: string;
+  @Prop({ required: false })
+  eventImage?: string;
 
   @Prop({ required: false })
   eventVideo?: string;

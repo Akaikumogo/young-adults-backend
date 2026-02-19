@@ -32,11 +32,10 @@ export class CreateEventDto {
   @IsOptional()
   eventDescription_ru?: string;
 
-  @ApiProperty({ example: 'https://example.com/event-image.jpg' })
+  @ApiProperty({ example: '/uploads/event-image.jpg', required: false })
   @IsString()
-  @IsNotEmpty()
-  @IsUrl()
-  eventImage: string;
+  @IsOptional()
+  eventImage?: string;
 
   @ApiProperty({ example: 'https://example.com/event-video.mp4', required: false })
   @IsString()
