@@ -6,7 +6,6 @@ import { Employee, EmployeeDocument } from './schemas/employee.schema';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UsersService } from '../users/user.service';
-import { getImageUrl } from '../utils/image.util';
 
 @Injectable()
 export class EmployeesService {
@@ -53,7 +52,7 @@ export class EmployeesService {
     // Transform employees - convert image paths to full URLs
     const employeesWithFullUrls = employees.map(employee => ({
       ...employee.toObject(),
-      image: getImageUrl(employee.image),
+      image: employee.image,
     }));
     
     // Transform users to employee-like format
@@ -98,7 +97,7 @@ export class EmployeesService {
     // Transform employees - convert image paths to full URLs
     const employeesWithFullUrls = employees.map(employee => ({
       ...employee.toObject(),
-      image: getImageUrl(employee.image),
+      image: employee.image,
     }));
     
     // Transform users to employee-like format
@@ -107,7 +106,7 @@ export class EmployeesService {
       name: user.full_name,
       role: user.role,
       description1: '', // User doesn't have description field
-      image: getImageUrl(user.avatar_url), // Use avatar_url as image and convert to full URL
+      image: user.avatar_url, // Use avatar_url as image and convert to full URL
       order: 1000 + index, // Put users after employees in order
       is_active: user.is_active,
       createdAt: user.createdAt,
@@ -137,7 +136,7 @@ export class EmployeesService {
     // Convert image path to full URL
     return {
       ...employee.toObject(),
-      image: getImageUrl(employee.image),
+      image: employee.image,
     };
   }
 
