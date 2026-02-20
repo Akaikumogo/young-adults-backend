@@ -158,7 +158,7 @@ async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<any> {
   const user = await this.usersService.findOne(id);
 
   if (user && ['teacher','admin','moderator'].includes(user.role)) {
-    return this.usersService.update(id, updateData);
+    return this.usersService.update(id, {...updateData, avatar_url: updateData.image ? `${updateData.image}` : user.avatar_url});
   }
 
   throw new NotFoundException('Employee not found');
