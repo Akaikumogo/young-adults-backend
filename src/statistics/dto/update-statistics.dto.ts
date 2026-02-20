@@ -27,7 +27,7 @@ export class UpdateStatisticsDto {
   @IsOptional()
   icon?: string;
 
-  @ApiProperty({ example: 'http://localhost:3000/uploads/statistics-icon.png', required: false })
+  @ApiProperty({ example: '/uploads/statistics-icon.png', required: false })
   @IsString()
   @IsOptional()
   image?: string;

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateEventDto {
@@ -32,16 +32,14 @@ export class UpdateEventDto {
   @IsOptional()
   eventDescription_ru?: string;
 
-  @ApiProperty({ example: 'https://example.com/event-image.jpg', required: false })
+  @ApiProperty({ example: '/uploads/event-image.jpg', required: false })
   @IsString()
   @IsOptional()
-  @IsUrl()
   eventImage?: string;
 
-  @ApiProperty({ example: 'https://example.com/event-video.mp4', required: false })
+  @ApiProperty({ example: '/uploads/event-video.mp4', required: false })
   @IsString()
   @IsOptional()
-  @IsUrl()
   eventVideo?: string;
 
   @ApiProperty({ required: false, default: true })

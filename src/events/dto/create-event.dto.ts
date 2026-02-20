@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsUrl } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEventDto {
@@ -37,10 +37,9 @@ export class CreateEventDto {
   @IsOptional()
   eventImage?: string;
 
-  @ApiProperty({ example: 'https://example.com/event-video.mp4', required: false })
+  @ApiProperty({ example: '/uploads/event-video.mp4', required: false, description: 'Video path only, no base URL' })
   @IsString()
   @IsOptional()
-  @IsUrl()
   eventVideo?: string;
 
   @ApiProperty({ required: false, default: true })

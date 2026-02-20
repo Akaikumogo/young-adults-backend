@@ -62,22 +62,22 @@ export class UpdateAboutDto {
   @IsOptional()
   content_ru?: string;
 
-  @ApiProperty({ example: 'https://example.com/image1.jpg', required: false })
+  @ApiProperty({ example: '/uploads/image1.jpg', required: false })
   @IsString()
   @IsOptional()
   image1?: string;
 
-  @ApiProperty({ example: 'https://example.com/image2.jpg', required: false })
+  @ApiProperty({ example: '/uploads/image2.jpg', required: false })
   @IsString()
   @IsOptional()
   image2?: string;
 
-  @ApiProperty({ example: 'https://example.com/image3.jpg', required: false })
+  @ApiProperty({ example: '/uploads/image3.jpg', required: false })
   @IsString()
   @IsOptional()
   image3?: string;
 
-  @ApiProperty({ example: 'https://example.com/image4.jpg', required: false })
+  @ApiProperty({ example: '/uploads/image4.jpg', required: false })
   @IsString()
   @IsOptional()
   image4?: string;

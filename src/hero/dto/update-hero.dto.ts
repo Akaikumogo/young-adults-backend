@@ -25,12 +25,12 @@ export class UpdateHeroDto {
   @IsOptional()
   priority?: number;
 
-  @ApiProperty({ example: 'http://localhost:3000/uploads/hero-image.png', required: false })
+  @ApiProperty({ example: '/uploads/hero-image.png', required: false })
   @IsString()
   @IsOptional()
   image?: string;
 
-  @ApiProperty({ example: 'http://localhost:3000/uploads/hero-video.mp4', required: false })
+  @ApiProperty({ example: '/uploads/hero-video.mp4', required: false })
   @IsString()
   @IsOptional()
   video?: string;

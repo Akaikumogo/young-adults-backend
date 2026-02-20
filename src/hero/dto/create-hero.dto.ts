@@ -26,18 +26,18 @@ export class CreateHeroDto {
   priority: number;
 
   @ApiProperty({
-    example: 'http://localhost:3000/uploads/hero-image.png',
+    example: '/uploads/hero-image.png',
     required: false,
-    description: 'Hero image URL (optional, used if video is empty)',
+    description: 'Hero image path (optional, used if video is empty). Backend returns path only, no base URL.',
   })
   @IsString()
   @IsOptional()
   image?: string;
 
   @ApiProperty({
-    example: 'http://localhost:3000/uploads/hero-video.mp4',
+    example: '/uploads/hero-video.mp4',
     required: false,
-    description: 'Hero video URL (optional, has priority over image on client)',
+    description: 'Hero video path (optional, has priority over image on client). Backend returns path only, no base URL.',
   })
   @IsString()
   @IsOptional()

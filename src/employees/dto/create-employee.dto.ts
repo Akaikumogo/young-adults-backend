@@ -17,7 +17,7 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   description1: string;
 
-  @ApiProperty({ example: 'https://example.com/image.jpg' })
+  @ApiProperty({ example: '/uploads/image.jpg', description: 'Image path only, no base URL' })
   @IsString()
   @IsNotEmpty()
   image: string;

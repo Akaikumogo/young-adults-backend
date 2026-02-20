@@ -37,7 +37,7 @@ export class UpdateLocationDto {
   @IsOptional()
   phone?: string;
 
-  @ApiProperty({ example: 'https://example.com/image.jpg', required: false })
+  @ApiProperty({ example: '/uploads/image.jpg', required: false })
   @IsString()
   @IsOptional()
   image?: string;
