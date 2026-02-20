@@ -140,32 +140,29 @@ export class EmployeesService {
     };
   }
 
-  async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<Employee> {
-    const updateData: any = { ...updateEmployeeDto };
-    
-    if (updateEmployeeDto.department_id) {
-      updateData.department_id = new Types.ObjectId(updateEmployeeDto.department_id);
-    }
-    
-    if (updateEmployeeDto.position_id) {
-      updateData.position_id = new Types.ObjectId(updateEmployeeDto.position_id);
-    }
+async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<any> {
+  const updateData: any = { ...updateEmployeeDto };
 
-    // Hash password if being updated
-    if (updateEmployeeDto.password) {
-      updateData.password = await bcrypt.hash(updateEmployeeDto.password, 10);
-    }
-
-    const employee = await this.employeeModel
-      .findByIdAndUpdate(id, updateData, { new: true })
-      .exec();
-
-    if (!employee) {
-      throw new NotFoundException('Employee not found');
-    }
-
-    return employee;
+  if (updateEmployeeDto.password) {
+    updateData.password = await bcrypt.hash(updateEmployeeDto.password, 10);
   }
+
+  // 1️⃣ Employee collection
+  const employee = await this.employeeModel
+    .findByIdAndUpdate(id, updateData, { new: true })
+    .exec();
+
+  if (employee) return employee;
+
+  // 2️⃣ User collection
+  const user = await this.usersService.findOne(id);
+
+  if (user && ['teacher','admin','moderator'].includes(user.role)) {
+    return this.usersService.update(id, updateData);
+  }
+
+  throw new NotFoundException('Employee not found');
+}
 
   async changePassword(id: string, newPassword: string): Promise<void> {
     const employee = await this.employeeModel.findById(id).exec();
