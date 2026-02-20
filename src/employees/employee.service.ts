@@ -62,7 +62,7 @@ export class EmployeesService {
       name: user.full_name,
       role: user.role,
       description1: '', // User doesn't have description field
-      image: getImageUrl(user.avatar_url), // Use avatar_url as image and convert to full URL
+      image: user.avatar_url, // Use avatar_url as image and convert to full URL
       order: 1000 + index, // Put users after employees in order
       is_active: user.is_active,
       createdAt: user.createdAt,
