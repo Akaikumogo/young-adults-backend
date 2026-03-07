@@ -249,15 +249,15 @@ export class CoursesController {
     return this.coursesService.remove(id);
   }
 
-  @Post(':id/assign-employee')
+  @Post(':id/assign-employees')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('moderator', 'admin')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Assign employees to course (moderator/admin)' })
   @ApiParam({ name: 'id', description: 'Course ID' })
   @ApiBody({ type: AssignEmployeeDto })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Employees assigned successfully',
     schema: {
       type: 'object',
