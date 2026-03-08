@@ -26,7 +26,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles('admin', 'moderator')
+  @Roles('admin', 'moderator', 'manager', 'crm', 'director')
   @ApiOperation({ summary: 'Create a new user' })
   @ApiBody({ type: CreateUserDto })
   @ApiResponse({ 
@@ -39,9 +39,10 @@ export class UsersController {
         full_name: { type: 'string' },
         email: { type: 'string' },
         phone: { type: 'string' },
-        role: { type: 'string', enum: ['admin', 'moderator', 'teacher'] },
+        role: { type: 'string', enum: ['admin', 'moderator', 'teacher', 'manager', 'crm', 'director'] },
         avatar_url: { type: 'string', nullable: true },
         is_active: { type: 'boolean', default: true },
+        is_public: { type: 'boolean', default: true },
         createdAt: { type: 'string', format: 'date-time' },
         updatedAt: { type: 'string', format: 'date-time' }
       }
@@ -55,7 +56,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('admin', 'moderator')
+  @Roles('admin', 'moderator', 'manager', 'crm', 'director')
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ 
     status: 200, 
@@ -85,7 +86,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles('admin', 'moderator')
+  @Roles('admin', 'moderator', 'manager', 'crm', 'director')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ 
@@ -115,7 +116,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'moderator')
+  @Roles('admin', 'moderator', 'manager', 'crm', 'director')
   @ApiOperation({ summary: 'Update user' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiBody({ type: UpdateUserDto })
@@ -145,7 +146,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @Roles('admin', 'director')
   @ApiOperation({ summary: 'Delete user' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ 

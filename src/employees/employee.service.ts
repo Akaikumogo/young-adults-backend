@@ -7,6 +7,8 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UsersService } from '../users/user.service';
 
+const STAFF_ROLES = ['teacher', 'admin', 'moderator', 'manager', 'crm', 'director'] as const;
+
 @Injectable()
 export class EmployeesService {
   constructor(
@@ -35,47 +37,50 @@ export class EmployeesService {
   }
 
   async findAll(): Promise<any[]> {
-    // Get employees
+    // Get employees (active + public only for landing)
     const employees = await this.employeeModel
-      .find({ is_active: true })
+      .find({ is_active: true, is_public: { $ne: false } })
       .populate('department_id', 'name code')
       .populate('position_id', 'name code')
       .sort({ order: 1 })
       .exec();
-    
-    // Get users with role: teacher only (admin and moderator are excluded from public endpoint)
+
+    // Get staff users — active + public only for landing
     const users = await this.usersService.findAll();
-    const staffUsers = users.filter(user => 
-      user.role === 'teacher' && user.is_active
+    const staffUsers = users.filter(
+      (user) =>
+        STAFF_ROLES.includes(user.role as any) &&
+        user.is_active &&
+        user.is_public !== false
     );
-    
+
     // Transform employees - convert image paths to full URLs
-    const employeesWithFullUrls = employees.map(employee => ({
+    const employeesWithFullUrls = employees.map((employee) => ({
       ...employee.toObject(),
       image: employee.image,
     }));
-    
+
     // Transform users to employee-like format
     const userEmployees = staffUsers.map((user, index) => ({
       _id: user._id,
       name: user.full_name,
       role: user.role,
-      description1: '', // User doesn't have description field
-      image: user.avatar_url, // Use avatar_url as image and convert to full URL
-      order: 1000 + index, // Put users after employees in order
+      description1: '',
+      image: user.avatar_url,
+      order: 1000 + index,
       is_active: user.is_active,
+      is_public: user.is_public !== false,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      source: 'user', // Mark as coming from users collection
+      source: 'user',
       email: user.email,
       phone: user.phone,
     }));
-    
-    // Combine employees and users, sort by order
-    const allStaff = [...employeesWithFullUrls, ...userEmployees].sort((a, b) => 
+
+    const allStaff = [...employeesWithFullUrls, ...userEmployees].sort((a, b) =>
       (a.order || 0) - (b.order || 0)
     );
-    
+
     return allStaff;
   }
 
@@ -88,11 +93,9 @@ export class EmployeesService {
       .sort({ order: 1 })
       .exec();
     
-    // Get all users with roles: teacher, admin, moderator (including inactive)
+    // Get all users with staff roles (including inactive; admin list shows all)
     const users = await this.usersService.findAll();
-    const staffUsers = users.filter(user => 
-      ['teacher', 'admin', 'moderator'].includes(user.role)
-    );
+    const staffUsers = users.filter((user) => STAFF_ROLES.includes(user.role as any));
     
     // Transform employees - convert image paths to full URLs
     const employeesWithFullUrls = employees.map(employee => ({
@@ -105,22 +108,22 @@ export class EmployeesService {
       _id: user._id,
       name: user.full_name,
       role: user.role,
-      description1: '', // User doesn't have description field
-      image: user.avatar_url, // Use avatar_url as image and convert to full URL
-      order: 1000 + index, // Put users after employees in order
+      description1: '',
+      image: user.avatar_url,
+      order: 1000 + index,
       is_active: user.is_active,
+      is_public: user.is_public !== false,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      source: 'user', // Mark as coming from users collection
+      source: 'user',
       email: user.email,
       phone: user.phone,
     }));
-    
-    // Combine employees and users, sort by order
-    const allStaff = [...employeesWithFullUrls, ...userEmployees].sort((a, b) => 
+
+    const allStaff = [...employeesWithFullUrls, ...userEmployees].sort((a, b) =>
       (a.order || 0) - (b.order || 0)
     );
-    
+
     return allStaff;
   }
 
@@ -157,8 +160,15 @@ async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<any> {
   // 2️⃣ User collection
   const user = await this.usersService.findOne(id);
 
-  if (user && ['teacher','admin','moderator'].includes(user.role)) {
-    return this.usersService.update(id, {...updateData, avatar_url: updateData.image ? `${updateData.image}` : user.avatar_url});
+  if (user && STAFF_ROLES.includes(user.role as any)) {
+    const userPayload: any = {
+      full_name: updateData.name ?? user.full_name,
+      is_active: updateData.is_active ?? user.is_active,
+      is_public: updateData.is_public ?? user.is_public,
+      avatar_url: updateData.image ? `${updateData.image}` : user.avatar_url,
+    };
+    if (updateData.role !== undefined) userPayload.role = updateData.role;
+    return this.usersService.update(id, userPayload);
   }
 
   throw new NotFoundException('Employee not found');
@@ -189,7 +199,7 @@ async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<any> {
     // Check if it's a user with role teacher, admin, or moderator
     try {
       const user = await this.usersService.findOne(id);
-      if (user && ['teacher', 'admin', 'moderator'].includes(user.role)) {
+      if (user && STAFF_ROLES.includes(user.role as any)) {
         await this.usersService.remove(id);
         return;
       } else if (user) {

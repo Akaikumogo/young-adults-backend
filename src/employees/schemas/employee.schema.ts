@@ -23,6 +23,9 @@ export class Employee {
   @Prop({ default: true })
   is_active: boolean;
 
+  @Prop({ default: true })
+  is_public: boolean;
+
   @Prop({ type: Types.ObjectId, ref: 'Department', required: false })
   department_id?: Types.ObjectId;
 

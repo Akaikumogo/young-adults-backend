@@ -6,6 +6,9 @@ export enum UserRole {
   MODERATOR = 'moderator',
   TEACHER = 'teacher',
   STUDENT = 'student',
+  MANAGER = 'manager',
+  CRM = 'crm',
+  DIRECTOR = 'director',
 }
 
 export class RegisterDto {

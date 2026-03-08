@@ -20,7 +20,7 @@ export class User {
   @Prop({ required: true })
   password: string;
 
-  @Prop({ required: true, enum: ['admin', 'moderator', 'teacher', 'student'] })
+  @Prop({ required: true, enum: ['admin', 'moderator', 'teacher', 'student', 'manager', 'crm', 'director'] })
   role: string;
 
   @Prop()
@@ -28,6 +28,9 @@ export class User {
 
   @Prop({ default: true })
   is_active: boolean;
+
+  @Prop({ default: true })
+  is_public: boolean;
 
   @Prop()
   last_login?: Date;

@@ -37,5 +37,10 @@ export class CreateUserDto {
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
+
+  @ApiProperty({ required: false, default: true, description: 'Public sahifada (xodimlar ro\'yxati) ko\'rsatish' })
+  @IsBoolean()
+  @IsOptional()
+  is_public?: boolean;
 }
 

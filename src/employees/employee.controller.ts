@@ -42,6 +42,7 @@ export class EmployeesController {
           slug: { type: 'string' },
           order: { type: 'number' },
           is_active: { type: 'boolean' },
+          is_public: { type: 'boolean', description: 'Public sahifada ko\'rsatish' },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' }
         }
@@ -54,7 +55,7 @@ export class EmployeesController {
 
   @Get('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('moderator', 'admin')
+  @Roles('moderator', 'admin', 'manager', 'crm', 'director')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all employees including inactive (moderator/admin)' })
   @ApiResponse({ 
@@ -116,7 +117,7 @@ export class EmployeesController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('moderator', 'admin')
+  @Roles('moderator', 'admin', 'manager', 'crm', 'director')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create employee (moderator/admin)' })
   @ApiBody({ type: CreateEmployeeDto })
@@ -149,7 +150,7 @@ export class EmployeesController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('moderator', 'admin')
+  @Roles('moderator', 'admin', 'manager', 'crm', 'director')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update employee (moderator/admin)' })
   @ApiParam({ name: 'id', description: 'Employee ID' })
@@ -183,7 +184,7 @@ export class EmployeesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('moderator', 'admin')
+  @Roles('moderator', 'admin', 'manager', 'crm', 'director')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Delete employee (moderator/admin)' })
   @ApiParam({ name: 'id', description: 'Employee ID' })
@@ -207,7 +208,7 @@ export class EmployeesController {
 
   @Patch(':id/password')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('moderator', 'admin')
+  @Roles('moderator', 'admin', 'manager', 'crm', 'director')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Change employee password (moderator/admin)' })
   @ApiParam({ name: 'id', description: 'Employee ID' })

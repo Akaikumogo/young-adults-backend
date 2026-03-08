@@ -7,7 +7,11 @@ export class CreateEmployeeDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'IT Specialist', enum: ['teacher', 'admin', 'moderator', 'IT Specialist', 'Manager', 'Director', 'Coordinator', 'Consultant'] })
+  @ApiProperty({
+    example: 'teacher',
+    enum: ['teacher', 'designer', 'developer', 'it_specialist', 'it_teacher', 'manager', 'crm', 'director'],
+    description: 'Lavozim: o\'qituvchi, dizayner, dasturchi, IT mutaxassis, IT o\'qituvchi, manager, CRM, direktor',
+  })
   @IsString()
   @IsNotEmpty()
   role: string;
@@ -31,6 +35,11 @@ export class CreateEmployeeDto {
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
+
+  @ApiProperty({ required: false, default: true, description: 'Public sahifada (landing) ko\'rsatish' })
+  @IsBoolean()
+  @IsOptional()
+  is_public?: boolean;
 
   @ApiProperty({ example: '507f1f77bcf86cd799439012', required: false })
   @IsString()
