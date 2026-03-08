@@ -131,7 +131,7 @@ export class StudentsService {
   }
 
   async findAll(): Promise<StudentDocument[]> {
-    return this.studentModel.find().populate('course').populate('employee').exec();
+    return this.studentModel.find().populate('course').populate('employee').sort({ createdAt: -1 }).exec();
   }
 
   async findOne(id: string): Promise<StudentDocument> {
@@ -153,6 +153,7 @@ export class StudentsService {
       .find({ employee: employeeId })
       .populate('course')
       .populate('employee')
+      .sort({ createdAt: -1 })
       .exec();
   }
 
@@ -162,6 +163,7 @@ export class StudentsService {
       .populate('course')
       .populate('employee')
       .populate('group')
+      .sort({ createdAt: -1 })
       .exec();
   }
 
@@ -182,6 +184,7 @@ export class StudentsService {
     // Find all students whose course is in the employee's courses
     return this.studentModel
       .find({ course: { $in: courseIds } })
+      .sort({ createdAt: -1 })
       .populate('course')
       .populate('employee')
       .populate('group')

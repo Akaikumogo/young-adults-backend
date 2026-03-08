@@ -25,6 +25,7 @@ export class GroupsService {
     const query = courseId ? { course: courseId } : {};
     return this.groupModel
       .find(query)
+      .sort({ createdAt: -1 })
       .populate('course')
       .populate({
         path: 'students',

@@ -51,7 +51,7 @@ export class CoursesService {
   }
 
   async findAll(): Promise<any[]> {
-    const courses = await this.courseModel.find().populate('employees').lean().exec();
+    const courses = await this.courseModel.find().populate('employees').sort({ createdAt: -1 }).lean().exec();
     
     // Get students count for each course
     const coursesWithCounts = await Promise.all(

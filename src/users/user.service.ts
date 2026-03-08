@@ -36,7 +36,7 @@ export class UsersService {
   }
 
   async findAll(): Promise<UserDocument[]> {
-    return this.userModel.find().select('-password').exec();
+    return this.userModel.find().select('-password').sort({ createdAt: -1 }).exec();
   }
 
   async findOne(id: string): Promise<UserDocument> {

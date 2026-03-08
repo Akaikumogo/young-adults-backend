@@ -15,11 +15,11 @@ export class LocationsService {
   }
 
   async findAll(): Promise<Location[]> {
-    return this.locationModel.find({ is_active: true }).exec();
+    return this.locationModel.find({ is_active: true }).sort({ createdAt: -1 }).exec();
   }
 
   async findAllAdmin(): Promise<Location[]> {
-    return this.locationModel.find().exec();
+    return this.locationModel.find().sort({ createdAt: -1 }).exec();
   }
 
   async findOne(id: string): Promise<Location> {
