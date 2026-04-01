@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Headers, ForbiddenException, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiHeader } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { SeedService } from './seed.service';
@@ -23,12 +23,17 @@ export class SeedController {
       'If SEED_PUBLIC_TOKEN is set in .env, you must pass it here.',
   })
   @ApiResponse({ status: 201, description: 'Seed executed' })
-  async seedPublic(@Headers('x-seed-token') token?: string) {
+  async seedPublic(
+    @Headers('x-seed-token') token?: string,
+    @Query('overwrite') overwrite?: string,
+  ) {
     const required = this.configService.get<string>('SEED_PUBLIC_TOKEN');
     if (required && required.trim() && token !== required) {
       throw new ForbiddenException('Invalid seed token');
     }
-    return this.seedService.seedPublicContent();
+    return this.seedService.seedPublicContent({
+      overwrite: overwrite === '1' || overwrite === 'true',
+    });
   }
 }
 
