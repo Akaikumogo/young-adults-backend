@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Hero } from './entities/hero.entity';
 import { About } from './entities/about.entity';
+import { Employee } from './entities/employee.entity';
 import { Course } from './entities/course.entity';
 import { Statistics } from './entities/statistics.entity';
 import { ClientStatistics } from './entities/client-statistics.entity';
@@ -16,6 +17,7 @@ export class SeedService {
   constructor(
     @InjectRepository(Hero) private heroRepo: Repository<Hero>,
     @InjectRepository(About) private aboutRepo: Repository<About>,
+    @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
     @InjectRepository(Course) private courseRepo: Repository<Course>,
     @InjectRepository(Statistics) private statsRepo: Repository<Statistics>,
     @InjectRepository(ClientStatistics)
@@ -31,6 +33,8 @@ export class SeedService {
     heroesUpdated: number;
     aboutInserted: number;
     aboutUpdated: number;
+    employeesInserted: number;
+    employeesUpdated: number;
     coursesInserted: number;
     coursesUpdated: number;
     statisticsInserted: number;
@@ -63,6 +67,8 @@ export class SeedService {
       heroesUpdated: 0,
       aboutInserted: 0,
       aboutUpdated: 0,
+      employeesInserted: 0,
+      employeesUpdated: 0,
       coursesInserted: 0,
       coursesUpdated: 0,
       statisticsInserted: 0,
@@ -88,7 +94,7 @@ export class SeedService {
         content_en: '<h1>Step into your future with Young Adults</h1>',
         content_ru: '<h1>Young Adults — ваш путь к будущему</h1>',
         image: '/uploads/seed/Rectangle_3980_no_bg.svg',
-        video: '',
+        video: '/uploads/seed/massiv.mp4',
         is_active: true,
       },
       {
@@ -121,22 +127,26 @@ export class SeedService {
       title_en: 'About us',
       title_ru: 'О нас',
       main_title_uz:
-        '<span class="text-orange-500">Young Adults</span> — yangi avlod uchun ta\'lim',
+        'Young Adults – bilim, ishonch va muvaffaqiyat <span class="text-orange-500">markazi!</span>',
       main_title_en:
-        '<span class="text-orange-500">Young Adults</span> — education for the new generation',
-      main_title_ru:
-        '<span class="text-orange-500">Young Adults</span> — образование для нового поколения',
+        'Young Adults – a center of knowledge, confidence and success!',
+      main_title_ru: 'Young Adults — центр знаний, уверенности и успеха!',
       description_uz:
-        'Til o‘qitish, IELTS va professional kurslar. Maqsadimiz — o‘quvchilarni xalqaro darajaga tayyorlash.',
-      description_en: 'Language training, IELTS and professional courses.',
-      description_ru: 'Языковые курсы, IELTS и профессиональные программы.',
-      content_uz: 'Batafsil ma’lumot admin panel orqali yangilanadi.',
-      content_en: 'Details are maintained via the admin panel.',
-      content_ru: 'Подробности обновляются через админ-панель.',
-      image1: '/uploads/seed/image.svg',
-      image2: '/uploads/seed/customer-service.svg',
-      image3: '/uploads/seed/photo_2025-07-28_10-42-28.svg',
-      image4: '/uploads/seed/travel.svg',
+        "🎓 Young Adults o‘quv markazi 2017-yilda tashkil etilgan bo‘lib, hozirgi kunga kelib 3 ta filial va 1 ta zamonaviy IT markaziga ega. Markazimiz bugunga qadar 5000 dan ortiq bitiruvchini yetishtirib, tumandagi yagona yirik qo‘shimcha ta’lim muassasasi sifatida tan olingan. Hozirda 1300 dan ortiq o‘quvchi tahsil olmoqda va ular orasida 80% dan ziyodi ingliz tilidan B2 yoki undan yuqori natijalarga erishgan. Shuningdek, 500 dan ortiq bitiruvchilarimiz dunyoning eng nufuzli — top 1000 talik oliygohlarida o‘qishni davom ettirishmoqda.",
+      description_en:
+        'Young Adults was founded in 2017 and now has 3 branches and an IT center. We have trained 5000+ graduates and currently teach 1300+ students.',
+      description_ru:
+        'Young Adults основан в 2017 году и сейчас имеет 3 филиала и IT-центр. Мы подготовили более 5000 выпускников и обучаем более 1300 студентов.',
+      content_uz:
+        "Asoschi: Yigitali Abdullayev — Young Adults asoschisi va bosh ilhomlantiruvchi.",
+      content_en:
+        'Founder: Yigitali Abdullaev — founder and main inspiration of Young Adults.',
+      content_ru:
+        'Основатель: Yigitali Abdullaev — основатель и главный вдохновитель Young Adults.',
+      image1: '/uploads/seed/about-img.png',
+      image2: '/uploads/seed/about-image2.png',
+      image3: '/uploads/seed/aboiut-image3.png',
+      image4: '/uploads/seed/youngAdults.jpg',
       is_active: true,
     };
     const aboutRows = await this.aboutRepo.find({
@@ -153,86 +163,271 @@ export class SeedService {
       result.aboutUpdated = 1;
     }
 
-    // COURSES (ensure by name_uz)
-    for (const seed of [
+    // EMPLOYEES (from young-adults constants; local images are missing in repo -> placeholder)
+    const seedEmployees: Array<{
+      name: string;
+      role: string;
+      birth?: string;
+      description1: string;
+      order: number;
+    }> = [
       {
-        name_uz: 'IELTS Intensive',
-        name_en: 'IELTS Intensive',
-        name_ru: 'IELTS Интенсив',
-        description_uz:
-          'Listening, Reading, Writing, Speaking bo‘yicha to‘liq tayyorgarlik. Haftada 3 kun.',
-        description_en: 'Full preparation for all IELTS modules.',
-        description_ru: 'Подготовка ко всем частям IELTS.',
-        duration_uz: '3 oy',
-        duration_en: '3 months',
-        duration_ru: '3 месяца',
-        daysPerWeek: 3,
-        hoursPerDay: 2,
-        icon: 'GraduationCap',
-        image: '/uploads/seed/logo.svg',
-        is_active: true,
+        name: 'Yigitali Abdullaev',
+        role: 'CEO of Young Adults LLC',
+        birth:
+          'Yigitali Abdullaev was born in 1995, in Surkhandarya region of Uzbekistan Republic.',
+        description1:
+          'Yigitali Abdullaev is the Deputy of Jarkurgan Town and CEO of Young Adults Study, an educational center empowering youth in English, IT, and personal growth.',
+        order: 0,
       },
       {
-        name_uz: 'Frontend dasturlash',
-        name_en: 'Frontend Development',
-        name_ru: 'Фронтенд разработка',
-        description_uz: 'HTML, CSS, JavaScript, React — noldan loyihalar.',
-        description_en: 'HTML, CSS, JavaScript, React from zero to projects.',
-        description_ru: 'HTML, CSS, JavaScript, React с нуля.',
-        duration_uz: '6 oy',
-        duration_en: '6 months',
-        duration_ru: '6 месяцев',
-        daysPerWeek: 2,
-        hoursPerDay: 3,
-        icon: 'Code2',
-        image: '/uploads/seed/logo_ya-coloured-black.svg',
-        is_active: true,
+        name: 'Bekhruz Mansurov',
+        role: 'IT Specialist',
+        birth: 'Bekhruz was born in 2004 in Jarkurgan.',
+        description1:
+          'Frontend lead at Young Adults. Passionate about helping beginners in tech through hands-on projects and mentorship.',
+        order: 1,
       },
-    ]) {
-      const existing = await this.courseRepo.findOne({
-        where: { name_uz: seed.name_uz } as any,
+      {
+        name: 'Rasulbek Saidoov',
+        role: 'IT Department Head',
+        birth: 'Rasulbek was born in 2000 in Jarkurgan.',
+        description1:
+          'Studied in Germany, expert in Business Analytics and Python. Now leads the IT department, guiding students through modern technologies.',
+        order: 2,
+      },
+      {
+        name: 'Dilshod Yusupov',
+        role: 'English Teacher',
+        birth: 'Born in 1998 in Termiz.',
+        description1:
+          'TESOL-certified ESL instructor with over 5 years of teaching experience.',
+        order: 3,
+      },
+      {
+        name: 'Sevara Karimova',
+        role: 'UX Designer',
+        birth: 'Born in 2001 in Tashkent.',
+        description1:
+          'Specialized in educational UI/UX design for youth-focused platforms.',
+        order: 4,
+      },
+      {
+        name: 'Shahzodbek Rakhimov',
+        role: 'Backend Developer',
+        birth: 'Born in 1999 in Samarkand.',
+        description1:
+          'Backend specialist in Node.js and PostgreSQL, focused on scalable APIs.',
+        order: 5,
+      },
+      {
+        name: 'Zarina Omonova',
+        role: 'Social Media Manager',
+        birth: 'Born in 2002 in Bukhara.',
+        description1:
+          'Creates powerful digital stories and builds strong online communities.',
+        order: 6,
+      },
+      {
+        name: 'Ilhom Turaev',
+        role: 'Mentor',
+        birth: 'Born in 1990 in Karshi.',
+        description1:
+          'Guides students in career development with focus on growth mindset.',
+        order: 7,
+      },
+    ];
+
+    for (const seed of seedEmployees) {
+      const existing = await this.employeeRepo.findOne({
+        where: { name: seed.name, is_public: true } as any,
       });
+
+      const patch: Partial<Employee> = {
+        name: seed.name,
+        role: seed.role,
+        description1: [seed.birth, seed.description1].filter(Boolean).join('\n\n'),
+        image: '/uploads/seed/Teacher3.webp',
+        order: seed.order,
+        is_active: true,
+        is_public: true,
+      };
+
       if (!existing) {
-        await this.courseRepo.save(this.courseRepo.create(seed as any));
+        await this.employeeRepo.save(this.employeeRepo.create(patch as any));
+        result.employeesInserted += 1;
+      } else {
+        applyPatch(existing as any, patch as any);
+        await this.employeeRepo.save(existing);
+        result.employeesUpdated += 1;
+      }
+    }
+
+    // COURSES (from young-adults constants/Courses.tsx; local images missing -> placeholder)
+    const seedCourses: Array<{
+      name: string;
+      teacher: string;
+      description: string;
+      time: string;
+      imageFile: string;
+    }> = [
+      {
+        name: 'Kompyuter savodxonligi',
+        teacher: 'Behruzbek Mansurov',
+        description:
+          "Kompyuter savodxonligi — foydalanuvchining kompyuter qurilmalari, dasturiy ta'minot va internet texnologiyalaridan maqsadga muvofiq, xavfsiz va mustaqil foydalana olish darajasidir.",
+        time: '2 soat',
+        imageFile: 'computer.png',
+      },
+      {
+        name: 'Frontend dasturlash',
+        teacher: 'Odilbek Safarov',
+        description:
+          "Frontend dasturlash — bu foydalanuvchi ko‘radigan va o‘zaro muloqot qiladigan veb-sayt yoki ilovaning tashqi ko‘rinishini (interfeysini) yaratish jarayonidir. Bunga dizaynni kodga aylantirish, elementlar joylashuvi, interaktiv tugmalar, menyular, formalar va animatsiyalar kiradi.",
+        time: '2 soat',
+        imageFile: 'front-end.png',
+      },
+      {
+        name: 'Backend dasturlash',
+        teacher: 'Rasulbek Hamdamov',
+        description:
+          "Backend dasturlash — bu veb-sayt yoki ilovaning server tomonini dasturlash jarayonidir.Bu ma’lumotlar bazasi, server, va APIlar bilan ishlaydigan, foydalanuvchi so‘rovlariga javob beradigan dasturlash. Hamda foydalanuvchi ko‘rmaydigan, ammo tizimning ishlashi uchun muhim bo‘lgan qism.",
+        time: '2 soat',
+        imageFile: 'backend.png',
+      },
+      {
+        name: 'Foundation kursi',
+        teacher: 'Odilbek Safarov',
+        description:
+          "Foundation kursi — bu dasturlashni o‘rganishni istaganlar uchun mo‘ljallangan boshlang‘ich (asosiy) kurs bo‘lib,bunda noldan boshlovchilar uchun mo‘ljallangan kurs bo‘lib, u dasturlashga kirish, asosiy mantiq va kod yozish ko‘nikmalarini beradi. Shuningdek kompyuter, algoritm, kod yozish, va dasturlash tillarining asosiy tushunchalari o‘rgatiladi..",
+        time: '2 soat',
+        imageFile: 'foundation.png',
+      },
+      {
+        name: 'IELTS',
+        teacher: 'Rasulbek Hamdamov',
+        description:
+          "IELTS (International English Language Testing System) — bu xalqaro miqyosda tan olingan ingliz tili imtihoni bo‘lib, u ingliz tilini o‘qish, yozish, tinglash va gapirish bo‘yicha bilimingizni baholaydi.",
+        time: '2 soat',
+        imageFile: 'IELTS.jpg',
+      },
+      {
+        name: 'CEFR',
+        teacher: 'Behruzbek Mansurov',
+        description:
+          "CEFR (Common European Framework of Reference for Languages) — bu xorijiy tillardagi til bilish darajalarini baholash uchun ishlatiladigan xalqaro standart tizim.",
+        time: '2 soat',
+        imageFile: 'cefr.png',
+      },
+      {
+        name: 'Ingliz tili grammatikasi',
+        teacher: 'Laziza Tolibjonova',
+        description:
+          'Ingliz tili grammatikasi — bu ingliz tilida to‘g‘ri gap tuzish, so‘zlarni o‘zaro bog‘lash va fikrni aniq ifodalash uchun qo‘llaniladigan qoidalar to‘plami.',
+        time: '2 soat',
+        imageFile: 'grammar.jpg',
+      },
+      {
+        name: 'Ona Tili (Milliy sertifikat)',
+        teacher: 'Laziza Tolibjonova',
+        description:
+          "Milliy sertifikat — bu O‘zbekiston Respublikasi fuqarolari uchun o‘zbek tilidan bilim darajasini baholaydigan rasmiy imtihon va hujjat bo‘lib, O‘zbek tili bo‘yicha rasmiy til bilimini tasdiqlaydi.",
+        time: '2 soat',
+        imageFile: 'onatili.jpg',
+      },
+    ];
+
+    for (const seed of seedCourses) {
+      const patch: Partial<Course> = {
+        name_uz: seed.name,
+        name_en: seed.name,
+        name_ru: seed.name,
+        description_uz: seed.description,
+        description_en: seed.description,
+        description_ru: seed.description,
+        duration_uz: seed.time,
+        duration_en: seed.time,
+        duration_ru: seed.time,
+        daysPerWeek: null,
+        hoursPerDay: null,
+        icon: null,
+        image: `/uploads/seed/${seed.imageFile}`,
+        is_active: true,
+      };
+
+      let teacher = await this.employeeRepo.findOne({
+        where: { name: seed.teacher, is_public: true } as any,
+      });
+      if (!teacher) {
+        const saved = await this.employeeRepo.save(
+          this.employeeRepo.create({
+            name: seed.teacher,
+            role: 'Teacher',
+            description1: '',
+            image: '/uploads/seed/Teacher3.webp',
+            order: 100,
+            is_active: true,
+            is_public: true,
+            department: null,
+            position: null,
+            login: null,
+            password: null,
+          } as any),
+        );
+        teacher = (Array.isArray(saved) ? saved[0] : saved) as Employee;
+        result.employeesInserted += 1;
+      }
+
+      const existing = await this.courseRepo.findOne({
+        where: { name_uz: patch.name_uz } as any,
+        relations: { employees: true } as any,
+      });
+
+      if (!existing) {
+        await this.courseRepo.save(
+          this.courseRepo.create({
+            ...(patch as any),
+            employees: [teacher],
+          }),
+        );
         result.coursesInserted += 1;
       } else {
-        applyPatch(existing as any, seed as any);
+        applyPatch(existing as any, patch as any);
+        const employees = Array.isArray((existing as any).employees)
+          ? (existing as any).employees
+          : [];
+        const hasTeacher = employees.some((e: Employee) => e?._id === teacher!._id);
+        if (!hasTeacher) (existing as any).employees = [...employees, teacher];
         await this.courseRepo.save(existing);
         result.coursesUpdated += 1;
       }
     }
 
-    // STATISTICS (ensure by label_uz)
+    // STATISTICS (from young-adults constants/Data.tsx)
     for (const seed of [
-      {
-        label_uz: 'Bitiruvchilar',
-        label_en: 'Graduates',
-        label_ru: 'Выпускники',
-        value: 1200,
-        icon: 'Users',
-        image: '',
-        order: 0,
-        is_active: true,
-      },
-      {
-        label_uz: 'O‘qituvchilar',
-        label_en: 'Teachers',
-        label_ru: 'Преподаватели',
-        value: 45,
-        icon: 'UserRound',
-        image: '',
-        order: 1,
-        is_active: true,
-      },
+      { label: 'Bitiruvchilar soni', count: 5000, order: 0 },
+      { label: "O'quvchilar soni", count: 1345, order: 1 },
+      { label: "O'qituvchilar soni", count: 31, order: 2 },
+      { label: 'Filiallar soni', count: 4, order: 3 },
     ]) {
+      const patch: Partial<Statistics> = {
+        label_uz: seed.label,
+        label_en: seed.label,
+        label_ru: seed.label,
+        value: seed.count,
+        icon: '',
+        image: '',
+        order: seed.order,
+        is_active: true,
+      };
       const existing = await this.statsRepo.findOne({
-        where: { label_uz: seed.label_uz } as any,
+        where: { label_uz: patch.label_uz } as any,
       });
       if (!existing) {
-        await this.statsRepo.save(this.statsRepo.create(seed as any));
+        await this.statsRepo.save(this.statsRepo.create(patch as any));
         result.statisticsInserted += 1;
       } else {
-        applyPatch(existing as any, seed as any);
+        applyPatch(existing as any, patch as any);
         await this.statsRepo.save(existing);
         result.statisticsUpdated += 1;
       }
@@ -272,66 +467,107 @@ export class SeedService {
       }
     }
 
-    // LOCATIONS (ensure by name_uz)
-    const locSeed: Partial<Location> = {
-      name_uz: 'Asosiy filial',
-      name_en: 'Main campus',
-      name_ru: 'Главный филиал',
-      address_uz: 'Toshkent shahri (to‘liq manzilni admin qo‘shadi)',
-      address_en: 'Tashkent (full address via admin)',
-      address_ru: 'Ташкент (полный адрес в админке)',
-      phone: '+998 90 000 00 00',
-      image: '/uploads/seed/image.svg',
-      coordinates: { lat: 41.3111, lng: 69.2797 } as any,
-      is_active: true,
-    };
-    const locExisting = await this.locationRepo.findOne({
-      where: { name_uz: locSeed.name_uz } as any,
-    });
-    if (!locExisting) {
-      await this.locationRepo.save(this.locationRepo.create(locSeed as any));
-      result.locationsInserted = 1;
-    } else {
-      applyPatch(locExisting as any, locSeed as any);
-      await this.locationRepo.save(locExisting);
-      result.locationsUpdated = 1;
-    }
-
-    // SERVICES (ensure by name_uz)
+    // LOCATIONS (from young-adults components/Locations.tsx; local images missing -> placeholder)
     for (const seed of [
-      {
-        name_uz: 'Buyuk Britaniya',
-        name_en: 'United Kingdom',
-        name_ru: 'Великобритания',
-        flag: '/uploads/seed/travel.svg',
-        description_uz: 'Universitetlar va IELTS talablari.',
-        description_en: 'Universities and IELTS requirements.',
-        description_ru: 'Университеты и требования IELTS.',
-        minIELTS: '6.0',
-        order: 0,
-        is_active: true,
-      },
-      {
-        name_uz: 'Germaniya',
-        name_en: 'Germany',
-        name_ru: 'Германия',
-        flag: '/uploads/seed/travel.svg',
-        description_uz: "Ta'lim va til sertifikatlari.",
-        description_en: 'Study paths and language certificates.',
-        description_ru: 'Обучение и языковые сертификаты.',
-        minIELTS: '5.5',
-        order: 1,
-        is_active: true,
-      },
+      { name: "Yangi O'zbekiston", phone: '+99890 295 70 07' },
+      { name: "Istiqlol ko'chasi", phone: '+99890 295 70 07' },
+      { name: 'Grammar Campus', phone: '+99890 295 70 07' },
     ]) {
-      const existing = await this.serviceRepo.findOne({
-        where: { name_uz: seed.name_uz } as any,
+      const patch: Partial<Location> = {
+        name_uz: seed.name,
+        name_en: seed.name,
+        name_ru: seed.name,
+        address_uz: "Manzil admin panel orqali to'ldiriladi.",
+        address_en: 'Address is maintained via the admin panel.',
+        address_ru: 'Адрес заполняется через админ-панель.',
+        phone: seed.phone,
+        image:
+          seed.name === "Yangi O'zbekiston"
+            ? '/uploads/seed/young-adults2.png'
+            : seed.name === "Istiqlol ko'chasi"
+              ? '/uploads/seed/istiqlolBranch.jpg'
+              : '/uploads/seed/grammarCampus.jpg',
+        coordinates: null,
+        is_active: true,
+      };
+
+      const existing = await this.locationRepo.findOne({
+        where: { name_uz: patch.name_uz } as any,
       });
       if (!existing) {
-        await this.serviceRepo.save(this.serviceRepo.create(seed as any));
+        await this.locationRepo.save(this.locationRepo.create(patch as any));
+        result.locationsInserted += 1;
+      } else {
+        applyPatch(existing as any, patch as any);
+        await this.locationRepo.save(existing);
+        result.locationsUpdated += 1;
+      }
+    }
+
+    // SERVICES (from young-adults constants/Consulting.tsx)
+    for (const seed of [
+      {
+        name: 'United Kingdom',
+        flag: 'https://flagcdn.com/gb.svg',
+        minIELTS: '6.5',
+        description:
+          "UK universitetlari kuchli akademik dasturlar bilan mashhur. Ko'plab grant va foundation imkoniyatlari mavjud.",
+        order: 0,
+      },
+      {
+        name: 'United States',
+        flag: 'https://flagcdn.com/us.svg',
+        minIELTS: '6.5 - 7.0',
+        description:
+          "AQShdagi universitetlar dunyoning eng yaxshi oliygohlari qatoriga kiradi. Talabalar campus hayotidan zavqlanishadi.",
+        order: 1,
+      },
+      {
+        name: 'Canada',
+        flag: 'https://flagcdn.com/ca.svg',
+        minIELTS: '6.0',
+        description:
+          "Kanada - sifatli ta'lim va xavfsiz muhit uchun mashhur. Immigratsion imkoniyatlar ham mavjud.",
+        order: 2,
+      },
+      {
+        name: 'Australia',
+        flag: 'https://flagcdn.com/au.svg',
+        minIELTS: '6.0 - 6.5',
+        description:
+          "Australia innovatsion ta'lim tizimi va go'zal tabiatga ega. Talabalar uchun flexible vizalar mavjud.",
+        order: 3,
+      },
+      {
+        name: 'Germany',
+        flag: 'https://flagcdn.com/de.svg',
+        minIELTS: '6.0',
+        description:
+          "Germaniyada ko'plab universitetlar bepul o'qitadi. IELTS talab qilinadi, lekin ba'zilarida alternativ variantlar mavjud.",
+        order: 4,
+      },
+    ]) {
+      const patch: Partial<Service> = {
+        name_uz: seed.name,
+        name_en: seed.name,
+        name_ru: seed.name,
+        flag: seed.flag,
+        description_uz: seed.description,
+        description_en: seed.description,
+        description_ru: seed.description,
+        minIELTS: seed.minIELTS,
+        order: seed.order,
+        is_active: true,
+      };
+
+      const existing = await this.serviceRepo.findOne({
+        where: { name_uz: patch.name_uz } as any,
+      });
+      if (!existing) {
+        await this.serviceRepo.save(this.serviceRepo.create(patch as any));
         result.servicesInserted += 1;
       } else {
-        applyPatch(existing as any, seed as any);
+        applyPatch(existing as any, patch as any);
         await this.serviceRepo.save(existing);
         result.servicesUpdated += 1;
       }

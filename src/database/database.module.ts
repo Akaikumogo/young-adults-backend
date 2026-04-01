@@ -11,6 +11,7 @@ import { SeedController } from './seed.controller';
 import {
   Hero,
   About,
+  Employee,
   Course,
   Statistics,
   ClientStatistics,
@@ -50,6 +51,7 @@ import {
       User,
       Hero,
       About,
+      Employee,
       Course,
       Statistics,
       ClientStatistics,

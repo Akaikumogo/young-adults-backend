@@ -1,20 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const ASSET_NAMES = [
-  'Rectangle_3980_bg_removed_deep.svg',
-  'Rectangle_3980_no_bg.svg',
-  'customer-service.svg',
-  'footerLogo.svg',
-  'image.svg',
-  'logo.svg',
-  'logo_ya-coloured-black.svg',
-  'photo_2025-07-28_10-42-28.svg',
-  'travel.svg',
-] as const;
+const ALLOWED_EXTS = new Set(['.svg', '.png', '.jpg', '.jpeg', '.webp', '.mp4']);
+
+function isAllowedAsset(fileName: string) {
+  return ALLOWED_EXTS.has(path.extname(fileName).toLowerCase());
+}
 
 function safeCopy(src: string, dst: string) {
   if (!fs.existsSync(src)) return false;
+  if (fs.existsSync(dst)) return false;
   fs.copyFileSync(src, dst);
   return true;
 }
@@ -31,22 +26,21 @@ async function bootstrap() {
 
   const results: Record<string, 'copied' | 'skipped' | 'missing'> = {};
 
-  for (const name of ASSET_NAMES) {
-    const dst = path.join(uploadsSeedDir, name);
-    if (fs.existsSync(dst)) {
-      results[name] = 'skipped';
-      continue;
-    }
-
-    let copied = false;
-    for (const dir of candidates) {
+  for (const dir of candidates) {
+    if (!fs.existsSync(dir)) continue;
+    const entries = fs.readdirSync(dir);
+    for (const name of entries) {
+      if (!isAllowedAsset(name)) continue;
+      const dst = path.join(uploadsSeedDir, name);
       const src = path.join(dir, name);
-      if (safeCopy(src, dst)) {
-        copied = true;
-        break;
-      }
+      const copied = safeCopy(src, dst);
+      results[name] = copied ? 'copied' : 'skipped';
     }
-    results[name] = copied ? 'copied' : 'missing';
+  }
+
+  if (Object.keys(results).length === 0) {
+    console.log('✅ seed-assets done (no assets found in candidates)', candidates);
+    return;
   }
 
   console.log('✅ seed-assets done', results);
