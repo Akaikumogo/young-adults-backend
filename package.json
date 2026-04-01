@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+    "seed:assets": "ts-node -r tsconfig-paths/register src/database/seed-assets.ts",
+    "seed": "npm run seed:assets && ts-node -r tsconfig-paths/register src/database/seed.ts",
     "migrate:multilingual": "ts-node -r tsconfig-paths/register src/database/scripts/migrate-multilingual.ts",
     "migrate:clean-urls": "ts-node -r tsconfig-paths/register src/database/scripts/clean-localhost-urls.ts"
   },

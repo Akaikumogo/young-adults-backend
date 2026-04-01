@@ -6,10 +6,18 @@ import {
   Res,
   UseInterceptors,
   UploadedFile,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+  ApiResponse,
+  ApiParam
+} from '@nestjs/swagger';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -32,9 +40,9 @@ export class UploadController {
     FileInterceptor('file', {
       storage: memoryStorage(),
       limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB
-      },
-    }),
+        fileSize: 50 * 1024 * 1024 // 50MB
+      }
+    })
   )
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -43,14 +51,14 @@ export class UploadController {
       properties: {
         file: {
           type: 'string',
-          format: 'binary',
-        },
-      },
-    },
+          format: 'binary'
+        }
+      }
+    }
   })
   @ApiOperation({ summary: 'Upload a file' })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'File uploaded successfully',
     schema: {
       type: 'object',
@@ -64,7 +72,10 @@ export class UploadController {
   })
   @ApiResponse({ status: 400, description: 'Bad request - No file provided' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Insufficient permissions'
+  })
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new Error('No file provided');
@@ -75,7 +86,7 @@ export class UploadController {
       url,
       filename: file.originalname,
       size: file.size,
-      mimetype: file.mimetype,
+      mimetype: file.mimetype
     };
   }
 
@@ -97,8 +108,11 @@ export class UploadController {
     // Normalize paths to prevent directory traversal
     const normalizedFilePath = path.normalize(filePath);
     const normalizedUploadPath = path.normalize(uploadPath);
-    
-    if (!fs.existsSync(normalizedFilePath) || !normalizedFilePath.startsWith(normalizedUploadPath)) {
+
+    if (
+      !fs.existsSync(normalizedFilePath) ||
+      !normalizedFilePath.startsWith(normalizedUploadPath)
+    ) {
       return res.status(404).json({ message: 'File not found' });
     }
 
@@ -110,7 +124,7 @@ export class UploadController {
       '.png': 'image/png',
       '.gif': 'image/gif',
       '.webp': 'image/webp',
-      '.pdf': 'application/pdf',
+      '.pdf': 'application/pdf'
     };
 
     const contentType = contentTypes[ext] || 'application/octet-stream';
@@ -118,4 +132,3 @@ export class UploadController {
     res.sendFile(normalizedFilePath);
   }
 }
-
