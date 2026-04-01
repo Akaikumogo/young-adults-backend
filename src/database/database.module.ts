@@ -6,6 +6,19 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import databaseConfig from '../config/database.config';
 import { typeOrmEntities, User } from './entities';
+import { SeedService } from './seed.service';
+import { SeedController } from './seed.controller';
+import {
+  Hero,
+  About,
+  Course,
+  Statistics,
+  ClientStatistics,
+  Location,
+  Service,
+  Slide,
+  SiteEvent,
+} from './entities';
 
 @Module({
   imports: [
@@ -33,8 +46,21 @@ import { typeOrmEntities, User } from './entities';
       },
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([
+      User,
+      Hero,
+      About,
+      Course,
+      Statistics,
+      ClientStatistics,
+      Location,
+      Service,
+      Slide,
+      SiteEvent,
+    ]),
   ],
+  controllers: [SeedController],
+  providers: [SeedService],
 })
 export class DatabaseModule implements OnModuleInit {
   constructor(
