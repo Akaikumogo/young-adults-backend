@@ -1,18 +1,25 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   ManyToMany,
   JoinTable,
+  BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Employee } from './employee.entity';
+import { randomUUID } from 'crypto';
 
 @Entity('courses')
 export class Course {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   _id: string;
+
+  @BeforeInsert()
+  private setId() {
+    if (!this._id) this._id = randomUUID();
+  }
 
   @Column({ name: 'name_uz' })
   name_uz: string;

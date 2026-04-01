@@ -1,22 +1,29 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   ManyToOne,
   JoinColumn,
+  BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Course } from './course.entity';
 import { Group } from './group.entity';
 import { Employee } from './employee.entity';
+import { randomUUID } from 'crypto';
 
 export type AttendanceEntry = { date: string; present: boolean };
 
 @Entity('students')
 export class Student {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   _id: string;
+
+  @BeforeInsert()
+  private setId() {
+    if (!this._id) this._id = randomUUID();
+  }
 
   @Column({ name: 'full_name' })
   full_name: string;

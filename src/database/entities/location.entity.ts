@@ -1,15 +1,22 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
+  BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { randomUUID } from 'crypto';
 
 @Entity('locations')
 export class Location {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   _id: string;
+
+  @BeforeInsert()
+  private setId() {
+    if (!this._id) this._id = randomUUID();
+  }
 
   @Column({ name: 'name_uz' })
   name_uz: string;

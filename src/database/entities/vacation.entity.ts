@@ -1,21 +1,28 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   ManyToOne,
   JoinColumn,
   Index,
+  BeforeInsert,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Employee } from './employee.entity';
 import { Department } from './department.entity';
+import { randomUUID } from 'crypto';
 
 @Entity('vacations')
 @Index(['employee', 'year', 'month'], { unique: true })
 export class Vacation {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   _id: string;
+
+  @BeforeInsert()
+  private setId() {
+    if (!this._id) this._id = randomUUID();
+  }
 
   @ManyToOne(() => Employee, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'employee_id' })
