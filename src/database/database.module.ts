@@ -96,7 +96,7 @@ export class DatabaseModule implements OnModuleInit {
 
       const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-      await this.userRepo.save({
+      const admin = this.userRepo.create({
         full_name: defaultName,
         email: defaultEmail,
         phone: defaultPhone,
@@ -107,6 +107,7 @@ export class DatabaseModule implements OnModuleInit {
         avatar_url: null,
         last_login: null,
       });
+      await this.userRepo.save(admin);
 
       console.log('✅ Default admin user created successfully!');
       console.log(`Email: ${defaultEmail}`);
