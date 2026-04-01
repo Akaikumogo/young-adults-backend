@@ -1,13 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { SlidesService } from './slides.service';
 import { SlidesController } from './slides.controller';
-import { Slide, SlideSchema } from './schemas/slide.schema';
+import { Slide } from '../database/entities/slide.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Slide.name, schema: SlideSchema }]),
-  ],
+  imports: [TypeOrmModule.forFeature([Slide])],
   controllers: [SlidesController],
   providers: [SlidesService],
   exports: [SlidesService],

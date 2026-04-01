@@ -164,7 +164,7 @@ export class DepartmentsController {
       expiresIn: refreshTokenExpiresIn,
     } as any);
 
-    const { password: _, ...departmentData } = department.toObject();
+    const { password: _pw, ...departmentData } = department;
 
     return {
       token: accessToken,

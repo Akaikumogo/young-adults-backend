@@ -1,24 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Event, EventDocument } from '../events/schemas/event.schema';
-import { Employee, EmployeeDocument } from '../employees/schemas/employee.schema';
-import { User, UserDocument } from '../users/schemas/user.schema';
-import { Course, CourseDocument } from '../courses/schemas/course.schema';
-import { About, AboutDocument } from '../about/schemas/about.schema';
-import { Location, LocationDocument } from '../locations/schemas/location.schema';
-import { Service, ServiceDocument } from '../services/schemas/service.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SiteEvent } from '../database/entities/event.entity';
+import { Employee } from '../database/entities/employee.entity';
+import { User } from '../database/entities/user.entity';
+import { Course } from '../database/entities/course.entity';
+import { About } from '../database/entities/about.entity';
+import { Location } from '../database/entities/location.entity';
+import { Service } from '../database/entities/service.entity';
 
 @Injectable()
 export class ClearImagesService {
   constructor(
-    @InjectModel(Event.name) private eventModel: Model<EventDocument>,
-    @InjectModel(Employee.name) private employeeModel: Model<EmployeeDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
-    @InjectModel(About.name) private aboutModel: Model<AboutDocument>,
-    @InjectModel(Location.name) private locationModel: Model<LocationDocument>,
-    @InjectModel(Service.name) private serviceModel: Model<ServiceDocument>,
+    @InjectRepository(SiteEvent) private eventRepo: Repository<SiteEvent>,
+    @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
+    @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(Course) private courseRepo: Repository<Course>,
+    @InjectRepository(About) private aboutRepo: Repository<About>,
+    @InjectRepository(Location) private locationRepo: Repository<Location>,
+    @InjectRepository(Service) private serviceRepo: Repository<Service>,
   ) {}
 
   async clearAllImages(): Promise<{
@@ -31,66 +31,72 @@ export class ClearImagesService {
     services: number;
     total: number;
   }> {
-    // Clear Events images - use $set with empty string for required fields
-    const eventsResult = await this.eventModel.updateMany(
-      {},
-      { $set: { eventImage: '', eventVideo: '' } }
-    ).exec();
+    const eventsResult = await this.eventRepo
+      .createQueryBuilder()
+      .update(SiteEvent)
+      .set({ eventImage: '', eventVideo: '' })
+      .execute();
 
-    // Clear Employees images
-    const employeesResult = await this.employeeModel.updateMany(
-      {},
-      { $set: { image: '' } }
-    ).exec();
+    const employeesResult = await this.employeeRepo
+      .createQueryBuilder()
+      .update(Employee)
+      .set({ image: '' })
+      .execute();
 
-    // Clear Users avatars
-    const usersResult = await this.userModel.updateMany(
-      {},
-      { $set: { avatar_url: '' } }
-    ).exec();
+    const usersResult = await this.userRepo
+      .createQueryBuilder()
+      .update(User)
+      .set({ avatar_url: null })
+      .execute();
 
-    // Clear Courses images and icons
-    const coursesResult = await this.courseModel.updateMany(
-      {},
-      { $set: { image: '', icon: '' } }
-    ).exec();
+    const coursesResult = await this.courseRepo
+      .createQueryBuilder()
+      .update(Course)
+      .set({ image: null, icon: null })
+      .execute();
 
-    // Clear About images array
-    const aboutResult = await this.aboutModel.updateMany(
-      {},
-      { $set: { images: [] } }
-    ).exec();
+    const aboutResult = await this.aboutRepo
+      .createQueryBuilder()
+      .update(About)
+      .set({ image1: null, image2: null, image3: null, image4: null })
+      .execute();
 
-    // Clear Locations images (if exists)
-    const locationsResult = await this.locationModel.updateMany(
-      {},
-      { $set: { image: '' } }
-    ).exec();
+    const locationsResult = await this.locationRepo
+      .createQueryBuilder()
+      .update(Location)
+      .set({ image: null })
+      .execute();
 
-    // Clear Services flags
-    const servicesResult = await this.serviceModel.updateMany(
-      {},
-      { $set: { flag: '' } }
-    ).exec();
+    const servicesResult = await this.serviceRepo
+      .createQueryBuilder()
+      .update(Service)
+      .set({ flag: '' })
+      .execute();
 
-    const total =
-      eventsResult.modifiedCount +
-      employeesResult.modifiedCount +
-      usersResult.modifiedCount +
-      coursesResult.modifiedCount +
-      aboutResult.modifiedCount +
-      locationsResult.modifiedCount +
-      servicesResult.modifiedCount;
+    const events = eventsResult.affected || 0;
+    const employees = employeesResult.affected || 0;
+    const users = usersResult.affected || 0;
+    const courses = coursesResult.affected || 0;
+    const about = aboutResult.affected || 0;
+    const locations = locationsResult.affected || 0;
+    const services = servicesResult.affected || 0;
 
     return {
-      events: eventsResult.modifiedCount,
-      employees: employeesResult.modifiedCount,
-      users: usersResult.modifiedCount,
-      courses: coursesResult.modifiedCount,
-      about: aboutResult.modifiedCount,
-      locations: locationsResult.modifiedCount,
-      services: servicesResult.modifiedCount,
-      total,
+      events,
+      employees,
+      users,
+      courses,
+      about,
+      locations,
+      services,
+      total:
+        events +
+        employees +
+        users +
+        courses +
+        about +
+        locations +
+        services,
     };
   }
 }

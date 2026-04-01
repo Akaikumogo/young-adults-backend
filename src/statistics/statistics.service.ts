@@ -1,30 +1,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Statistics, StatisticsDocument } from './schemas/statistics.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Statistics } from '../database/entities/statistics.entity';
 import { CreateStatisticsDto } from './dto/create-statistics.dto';
 import { UpdateStatisticsDto } from './dto/update-statistics.dto';
 
 @Injectable()
 export class StatisticsService {
   constructor(
-    @InjectModel(Statistics.name)
-    private statisticsModel: Model<StatisticsDocument>,
+    @InjectRepository(Statistics) private statisticsRepo: Repository<Statistics>,
   ) {}
 
   async findAll(): Promise<Statistics[]> {
-    return this.statisticsModel
-      .find({ is_active: true })
-      .sort({ order: 1 })
-      .exec();
+    return this.statisticsRepo.find({
+      where: { is_active: true },
+      order: { order: 'ASC' },
+    });
   }
 
   async findAllAdmin(): Promise<Statistics[]> {
-    return this.statisticsModel.find().sort({ order: 1 }).exec();
+    return this.statisticsRepo.find({ order: { order: 'ASC' } });
   }
 
   async findOne(id: string): Promise<Statistics> {
-    const statistics = await this.statisticsModel.findById(id).exec();
+    const statistics = await this.statisticsRepo.findOne({ where: { _id: id } });
     if (!statistics) {
       throw new NotFoundException(`Statistics with ID ${id} not found`);
     }
@@ -32,28 +31,23 @@ export class StatisticsService {
   }
 
   async create(createStatisticsDto: CreateStatisticsDto): Promise<Statistics> {
-    const statistics = new this.statisticsModel(createStatisticsDto);
-    return statistics.save();
+    const statistics = this.statisticsRepo.create(createStatisticsDto);
+    return this.statisticsRepo.save(statistics);
   }
 
   async update(
     id: string,
     updateStatisticsDto: UpdateStatisticsDto,
   ): Promise<Statistics> {
-    const statistics = await this.statisticsModel
-      .findByIdAndUpdate(id, updateStatisticsDto, { new: true })
-      .exec();
-    if (!statistics) {
-      throw new NotFoundException(`Statistics with ID ${id} not found`);
-    }
-    return statistics;
+    const statistics = await this.findOne(id);
+    Object.assign(statistics, updateStatisticsDto);
+    return this.statisticsRepo.save(statistics);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.statisticsModel.findByIdAndDelete(id).exec();
-    if (!result) {
+    const result = await this.statisticsRepo.delete({ _id: id });
+    if (!result.affected) {
       throw new NotFoundException(`Statistics with ID ${id} not found`);
     }
   }
 }
-

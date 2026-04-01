@@ -1,50 +1,54 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Event, EventDocument } from './schemas/event.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DeepPartial, Repository } from 'typeorm';
+import { SiteEvent } from '../database/entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class EventsService {
-  constructor(@InjectModel(Event.name) private eventModel: Model<EventDocument>) {}
+  constructor(
+    @InjectRepository(SiteEvent) private eventRepo: Repository<SiteEvent>,
+  ) {}
 
-  async create(createEventDto: CreateEventDto): Promise<Event> {
-    const event = new this.eventModel(createEventDto);
-    return event.save();
+  async create(createEventDto: CreateEventDto): Promise<SiteEvent> {
+    const row = this.eventRepo.create(
+      createEventDto as DeepPartial<SiteEvent>,
+    );
+    return this.eventRepo.save(row);
   }
 
-  async findAll(): Promise<Event[]> {
-    return this.eventModel.find({ is_active: true }).sort({ createdAt: -1 }).exec();
+  async findAll(): Promise<SiteEvent[]> {
+    return this.eventRepo.find({
+      where: { is_active: true },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async findAllAdmin(): Promise<Event[]> {
-    return this.eventModel.find().sort({ createdAt: -1 }).exec();
+  async findAllAdmin(): Promise<SiteEvent[]> {
+    return this.eventRepo.find({ order: { createdAt: 'DESC' } });
   }
 
-  async findOne(id: string): Promise<Event> {
-    const event = await this.eventModel.findById(id).exec();
+  async findOne(id: string): Promise<SiteEvent> {
+    const event = await this.eventRepo.findOne({ where: { _id: id } });
     if (!event) {
       throw new NotFoundException('Event not found');
     }
     return event;
   }
 
-  async update(id: string, updateEventDto: UpdateEventDto): Promise<Event> {
-    const event = await this.eventModel
-      .findByIdAndUpdate(id, updateEventDto, { new: true })
-      .exec();
-
-    if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-
-    return event;
+  async update(
+    id: string,
+    updateEventDto: UpdateEventDto,
+  ): Promise<SiteEvent> {
+    const event = await this.findOne(id);
+    Object.assign(event, updateEventDto);
+    return this.eventRepo.save(event);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.eventModel.findByIdAndDelete(id).exec();
-    if (!result) {
+    const result = await this.eventRepo.delete({ _id: id });
+    if (!result.affected) {
       throw new NotFoundException('Event not found');
     }
   }

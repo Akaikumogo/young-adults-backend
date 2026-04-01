@@ -1,73 +1,79 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Department, DepartmentDocument } from './schemas/department.schema';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { Department } from '../database/entities/department.entity';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class DepartmentsService {
   constructor(
-    @InjectModel(Department.name) private departmentModel: Model<DepartmentDocument>,
+    @InjectRepository(Department) private departmentRepo: Repository<Department>,
   ) {}
 
-  async create(createDepartmentDto: CreateDepartmentDto): Promise<DepartmentDocument> {
+  async create(
+    createDepartmentDto: CreateDepartmentDto,
+  ): Promise<Department> {
     const hashedPassword = await bcrypt.hash(createDepartmentDto.password, 10);
-    const department = new this.departmentModel({
+    const department = this.departmentRepo.create({
       ...createDepartmentDto,
       password: hashedPassword,
     });
-    return department.save();
+    return this.departmentRepo.save(department);
   }
 
-  async findAll(): Promise<DepartmentDocument[]> {
-    return this.departmentModel.find({ is_active: true }).sort({ name: 1 }).exec();
+  async findAll(): Promise<Department[]> {
+    return this.departmentRepo.find({
+      where: { is_active: true },
+      order: { name: 'ASC' },
+    });
   }
 
-  async findAllAdmin(): Promise<DepartmentDocument[]> {
-    return this.departmentModel.find().sort({ name: 1 }).exec();
+  async findAllAdmin(): Promise<Department[]> {
+    return this.departmentRepo.find({ order: { name: 'ASC' } });
   }
 
-  async findOne(id: string): Promise<DepartmentDocument> {
-    const department = await this.departmentModel.findById(id).exec();
+  async findOne(id: string): Promise<Department> {
+    const department = await this.departmentRepo.findOne({ where: { _id: id } });
     if (!department) {
       throw new NotFoundException('Department not found');
     }
     return department;
   }
 
-  async findByLogin(login: string): Promise<DepartmentDocument | null> {
-    return this.departmentModel.findOne({ login }).exec();
+  async findByLogin(login: string): Promise<Department | null> {
+    return this.departmentRepo.findOne({ where: { login } });
   }
 
-  async update(id: string, updateDepartmentDto: UpdateDepartmentDto): Promise<DepartmentDocument> {
-    const updateData: any = { ...updateDepartmentDto };
-    
-    // If password is being updated, hash it
+  async update(
+    id: string,
+    updateDepartmentDto: UpdateDepartmentDto,
+  ): Promise<Department> {
+    const department = await this.findOne(id);
+    const patch: any = { ...updateDepartmentDto };
     if (updateDepartmentDto.password) {
-      updateData.password = await bcrypt.hash(updateDepartmentDto.password, 10);
+      patch.password = await bcrypt.hash(updateDepartmentDto.password, 10);
     }
-
-    const department = await this.departmentModel
-      .findByIdAndUpdate(id, updateData, { new: true })
-      .exec();
-
-    if (!department) {
-      throw new NotFoundException('Department not found');
-    }
-
-    return department;
+    Object.assign(department, patch);
+    return this.departmentRepo.save(department);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.departmentModel.findByIdAndDelete(id).exec();
-    if (!result) {
+    const result = await this.departmentRepo.delete({ _id: id });
+    if (!result.affected) {
       throw new NotFoundException('Department not found');
     }
   }
 
-  async validateDepartment(login: string, password: string): Promise<DepartmentDocument> {
+  async validateDepartment(
+    login: string,
+    password: string,
+  ): Promise<Department> {
     const department = await this.findByLogin(login);
     if (!department) {
       throw new UnauthorizedException('Invalid credentials');
@@ -85,4 +91,3 @@ export class DepartmentsService {
     return department;
   }
 }
-

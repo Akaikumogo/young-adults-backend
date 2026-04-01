@@ -68,9 +68,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
   async register(@Body() registerDto: RegisterDto) {
-    const user = await this.authService.register(registerDto);
-    const { password: _, ...result } = (user as any).toObject();
-    return result;
+    return this.authService.register(registerDto);
   }
 
   @Post('register-student')

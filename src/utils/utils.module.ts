@@ -1,25 +1,25 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClearImagesService } from './clear-images.service';
 import { ClearImagesController } from './clear-images.controller';
-import { Event, EventSchema } from '../events/schemas/event.schema';
-import { Employee, EmployeeSchema } from '../employees/schemas/employee.schema';
-import { User, UserSchema } from '../users/schemas/user.schema';
-import { Course, CourseSchema } from '../courses/schemas/course.schema';
-import { About, AboutSchema } from '../about/schemas/about.schema';
-import { Location, LocationSchema } from '../locations/schemas/location.schema';
-import { Service, ServiceSchema } from '../services/schemas/service.schema';
+import { SiteEvent } from '../database/entities/event.entity';
+import { Employee } from '../database/entities/employee.entity';
+import { User } from '../database/entities/user.entity';
+import { Course } from '../database/entities/course.entity';
+import { About } from '../database/entities/about.entity';
+import { Location } from '../database/entities/location.entity';
+import { Service } from '../database/entities/service.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Event.name, schema: EventSchema },
-      { name: Employee.name, schema: EmployeeSchema },
-      { name: User.name, schema: UserSchema },
-      { name: Course.name, schema: CourseSchema },
-      { name: About.name, schema: AboutSchema },
-      { name: Location.name, schema: LocationSchema },
-      { name: Service.name, schema: ServiceSchema },
+    TypeOrmModule.forFeature([
+      SiteEvent,
+      Employee,
+      User,
+      Course,
+      About,
+      Location,
+      Service,
     ]),
   ],
   controllers: [ClearImagesController],

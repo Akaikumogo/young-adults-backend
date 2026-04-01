@@ -1,17 +1,21 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { GroupsService } from './group.service';
 import { GroupsController } from './group.controller';
-import { Group, GroupSchema } from './schemas/group.schema';
-import { GroupHistory, GroupHistorySchema } from './schemas/group-history.schema';
-import { Student, StudentSchema } from '../students/schemas/student.schema';
+import { Group } from '../database/entities/group.entity';
+import { GroupHistory } from '../database/entities/group-history.entity';
+import { Student } from '../database/entities/student.entity';
+import { Course } from '../database/entities/course.entity';
+import { Employee } from '../database/entities/employee.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Group.name, schema: GroupSchema },
-      { name: GroupHistory.name, schema: GroupHistorySchema },
-      { name: Student.name, schema: StudentSchema },
+    TypeOrmModule.forFeature([
+      Group,
+      GroupHistory,
+      Student,
+      Course,
+      Employee,
     ]),
   ],
   controllers: [GroupsController],
@@ -19,4 +23,3 @@ import { Student, StudentSchema } from '../students/schemas/student.schema';
   exports: [GroupsService],
 })
 export class GroupsModule {}
-

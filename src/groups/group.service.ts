@@ -1,224 +1,300 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Group, GroupDocument } from './schemas/group.schema';
-import { GroupHistory, GroupHistoryDocument } from './schemas/group-history.schema';
-import { Student, StudentDocument } from '../students/schemas/student.schema';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, In, IsNull } from 'typeorm';
+import { Group } from '../database/entities/group.entity';
+import { GroupHistory } from '../database/entities/group-history.entity';
+import { Student } from '../database/entities/student.entity';
+import { Course } from '../database/entities/course.entity';
+import { Employee } from '../database/entities/employee.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { MoveStudentDto } from './dto/move-student.dto';
+import { User } from '../database/entities/user.entity';
 
 @Injectable()
 export class GroupsService {
   constructor(
-    @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
-    @InjectModel(GroupHistory.name) private historyModel: Model<GroupHistoryDocument>,
-    @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
+    @InjectRepository(Group) private groupRepo: Repository<Group>,
+    @InjectRepository(GroupHistory) private historyRepo: Repository<GroupHistory>,
+    @InjectRepository(Student) private studentRepo: Repository<Student>,
+    @InjectRepository(Course) private courseRepo: Repository<Course>,
+    @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
   ) {}
 
-  async create(createGroupDto: CreateGroupDto): Promise<GroupDocument> {
-    const group = new this.groupModel(createGroupDto);
-    return group.save();
+  private async attachStudents(groups: Group[]): Promise<any[]> {
+    if (!groups.length) return [];
+    const ids = groups.map((g) => g._id);
+    const students = await this.studentRepo.find({
+      where: { group: { _id: In(ids) } },
+      relations: ['course', 'employee'],
+    });
+    const byGroup: Record<string, Student[]> = {};
+    for (const s of students) {
+      const gid = (s.group as Group | null)?._id;
+      if (!gid) continue;
+      if (!byGroup[gid]) byGroup[gid] = [];
+      byGroup[gid].push(s);
+    }
+    return groups.map((g) => ({
+      ...g,
+      students: byGroup[g._id] || [],
+    }));
   }
 
-  async findAll(courseId?: string): Promise<GroupDocument[]> {
-    const query = courseId ? { course: courseId } : {};
-    return this.groupModel
-      .find(query)
-      .sort({ createdAt: -1 })
-      .populate('course')
-      .populate({
-        path: 'students',
-        select: 'full_name phone email avatar_url course employee',
-        populate: [
-          { path: 'course', select: 'name' },
-          { path: 'employee', select: 'name email' }
-        ]
-      })
-      .populate('employee')
-      .exec();
+  async create(createGroupDto: CreateGroupDto): Promise<Group> {
+    const course = await this.courseRepo.findOne({
+      where: { _id: createGroupDto.course },
+    });
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
+    let employee: Employee | null = null;
+    if (createGroupDto.employee) {
+      employee = await this.employeeRepo.findOne({
+        where: { _id: createGroupDto.employee },
+      });
+    }
+
+    const group = this.groupRepo.create({
+      name: createGroupDto.name,
+      description: createGroupDto.description ?? null,
+      course,
+      maxStudents: createGroupDto.maxStudents ?? 30,
+      daysOfWeek: createGroupDto.daysOfWeek ?? null,
+      startTime: createGroupDto.startTime ?? null,
+      endTime: createGroupDto.endTime ?? null,
+      employee,
+      is_active: createGroupDto.is_active !== false,
+    });
+
+    return this.groupRepo.save(group);
   }
 
-  async findOne(id: string): Promise<GroupDocument> {
-    const group = await this.groupModel
-      .findById(id)
-      .populate('course')
-      .populate({
-        path: 'students',
-        select: 'full_name phone email avatar_url course employee',
-        populate: [
-          { path: 'course', select: 'name' },
-          { path: 'employee', select: 'name email' }
-        ]
-      })
-      .populate('employee')
-      .exec();
+  async findAll(courseId?: string): Promise<any[]> {
+    const where = courseId ? { course: { _id: courseId } } : {};
+    const groups = await this.groupRepo.find({
+      where,
+      relations: ['course', 'employee'],
+      order: { createdAt: 'DESC' },
+    });
+    return this.attachStudents(groups);
+  }
 
+  async findOne(id: string): Promise<any> {
+    const group = await this.groupRepo.findOne({
+      where: { _id: id },
+      relations: ['course', 'employee'],
+    });
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+    const [withStudents] = await this.attachStudents([group]);
+    return withStudents;
+  }
+
+  async update(id: string, updateGroupDto: UpdateGroupDto): Promise<any> {
+    const group = await this.groupRepo.findOne({
+      where: { _id: id },
+      relations: ['course', 'employee'],
+    });
     if (!group) {
       throw new NotFoundException('Group not found');
     }
 
-    return group;
-  }
-
-  async update(id: string, updateGroupDto: UpdateGroupDto): Promise<GroupDocument> {
-    const group = await this.groupModel
-      .findByIdAndUpdate(id, updateGroupDto, { new: true })
-      .populate('course')
-      .populate({
-        path: 'students',
-        select: 'full_name phone email avatar_url course employee',
-        populate: [
-          { path: 'course', select: 'name' },
-          { path: 'employee', select: 'name email' }
-        ]
-      })
-      .populate('employee')
-      .exec();
-
-    if (!group) {
-      throw new NotFoundException('Group not found');
+    if (updateGroupDto.name !== undefined) group.name = updateGroupDto.name;
+    if (updateGroupDto.description !== undefined) {
+      group.description = updateGroupDto.description ?? null;
+    }
+    if (updateGroupDto.maxStudents !== undefined) {
+      group.maxStudents = updateGroupDto.maxStudents;
+    }
+    if (updateGroupDto.daysOfWeek !== undefined) {
+      group.daysOfWeek = updateGroupDto.daysOfWeek ?? null;
+    }
+    if (updateGroupDto.startTime !== undefined) {
+      group.startTime = updateGroupDto.startTime ?? null;
+    }
+    if (updateGroupDto.endTime !== undefined) {
+      group.endTime = updateGroupDto.endTime ?? null;
+    }
+    if (updateGroupDto.is_active !== undefined) {
+      group.is_active = updateGroupDto.is_active;
     }
 
-    return group;
+    if (updateGroupDto.course) {
+      const course = await this.courseRepo.findOne({
+        where: { _id: updateGroupDto.course },
+      });
+      if (!course) throw new NotFoundException('Course not found');
+      group.course = course;
+    }
+
+    if (updateGroupDto.employee !== undefined) {
+      if (updateGroupDto.employee) {
+        const emp = await this.employeeRepo.findOne({
+          where: { _id: updateGroupDto.employee },
+        });
+        group.employee = emp;
+      } else {
+        group.employee = null;
+      }
+    }
+
+    await this.groupRepo.save(group);
+    return this.findOne(id);
   }
 
   async remove(id: string): Promise<void> {
-    const group = await this.findOne(id);
-    
-    // Remove students from group before deleting
-    await this.studentModel.updateMany(
-      { group: id },
-      { $unset: { group: 1 } }
-    ).exec();
-
-    await this.groupModel.findByIdAndDelete(id).exec();
+    await this.findOne(id);
+    const inGroup = await this.studentRepo.find({
+      where: { group: { _id: id } },
+    });
+    for (const s of inGroup) {
+      s.group = null;
+      await this.studentRepo.save(s);
+    }
+    await this.groupRepo.delete({ _id: id });
   }
 
-  async addStudentsToGroup(groupId: string, studentIds: string[]): Promise<GroupDocument> {
-    const group = await this.groupModel.findById(groupId).exec();
-    
+  async countStudentsInGroup(groupId: string): Promise<number> {
+    return this.studentRepo.count({ where: { group: { _id: groupId } } });
+  }
+
+  async addStudentsToGroup(groupId: string, studentIds: string[]): Promise<any> {
+    const group = await this.groupRepo.findOne({ where: { _id: groupId } });
     if (!group) {
       throw new NotFoundException('Group not found');
     }
 
-    // Get current student IDs (handle both populated and non-populated)
-    const currentStudentIds = group.students.map((s: any) => 
-      typeof s === 'object' && s._id ? s._id.toString() : s.toString()
-    );
-
-    // Check max students limit
-    if (group.maxStudents && currentStudentIds.length + studentIds.length > group.maxStudents) {
+    const currentCount = await this.countStudentsInGroup(groupId);
+    if (
+      group.maxStudents &&
+      currentCount + studentIds.length > group.maxStudents
+    ) {
       throw new BadRequestException(
-        `Group is full. Maximum ${group.maxStudents} students allowed.`
+        `Group is full. Maximum ${group.maxStudents} students allowed.`,
       );
     }
 
-    // Add students to group
-    const uniqueStudentIds = [...new Set([...currentStudentIds, ...studentIds])];
-    
-    // Update students' group reference
-    await this.studentModel.updateMany(
-      { _id: { $in: studentIds } },
-      { $set: { group: groupId } }
-    ).exec();
+    const groupFull = await this.groupRepo.findOneOrFail({
+      where: { _id: groupId },
+    });
+    for (const sid of studentIds) {
+      const st = await this.studentRepo.findOne({ where: { _id: sid } });
+      if (st) {
+        st.group = groupFull;
+        await this.studentRepo.save(st);
+      }
+    }
 
-    group.students = uniqueStudentIds as any;
-    await group.save();
-
-    // Return populated group
     return this.findOne(groupId);
   }
 
-  async removeStudentFromGroup(groupId: string, studentId: string): Promise<GroupDocument> {
-    const group = await this.groupModel.findById(groupId).exec();
-    
+  async removeStudentFromGroup(
+    groupId: string,
+    studentId: string,
+  ): Promise<any> {
+    const group = await this.groupRepo.findOne({ where: { _id: groupId } });
     if (!group) {
       throw new NotFoundException('Group not found');
     }
 
-    // Remove student from group (handle both populated and non-populated)
-    group.students = group.students.filter((s: any) => {
-      const id = typeof s === 'object' && s._id ? s._id.toString() : s.toString();
-      return id !== studentId;
-    }) as any;
+    const student = await this.studentRepo.findOne({
+      where: { _id: studentId, group: { _id: groupId } },
+    });
+    if (student) {
+      student.group = null;
+      await this.studentRepo.save(student);
+    }
 
-    // Update student's group reference
-    await this.studentModel.findByIdAndUpdate(studentId, {
-      $unset: { group: 1 }
-    }).exec();
-
-    await group.save();
-
-    // Return populated group
     return this.findOne(groupId);
   }
 
-  async moveStudent(moveStudentDto: MoveStudentDto, movedBy?: string): Promise<StudentDocument> {
+  async moveStudent(
+    moveStudentDto: MoveStudentDto,
+    movedBy?: string,
+  ): Promise<Student> {
     const { studentId, toGroupId, reason } = moveStudentDto;
 
-    const student = await this.studentModel.findById(studentId).exec();
+    const student = await this.studentRepo.findOne({
+      where: { _id: studentId },
+      relations: ['group', 'course'],
+    });
     if (!student) {
       throw new NotFoundException('Student not found');
     }
 
-    const fromGroupId = student.group?.toString();
+    const fromGroupId = student.group?._id;
 
-    // If moving to a group, validate it exists
     if (toGroupId) {
       const toGroup = await this.findOne(toGroupId);
-      
-      // Check if group belongs to same course
-      if (toGroup.course.toString() !== student.course.toString()) {
-        throw new BadRequestException('Cannot move student to group from different course');
+      const studentCourseId = student.course._id;
+      const toCourseId =
+        typeof toGroup.course === 'object' && toGroup.course
+          ? (toGroup.course as Course)._id
+          : toGroup.course;
+      if (toCourseId !== studentCourseId) {
+        throw new BadRequestException(
+          'Cannot move student to group from different course',
+        );
       }
 
-      // Check max students limit
-      if (toGroup.maxStudents && toGroup.students.length >= toGroup.maxStudents) {
+      const toCount = await this.countStudentsInGroup(toGroupId);
+      if (toGroup.maxStudents && toCount >= toGroup.maxStudents) {
         throw new BadRequestException('Target group is full');
       }
 
-      // Add to new group
       await this.addStudentsToGroup(toGroupId, [studentId]);
-    } else {
-      // Remove from current group
-      if (fromGroupId) {
-        await this.removeStudentFromGroup(fromGroupId, studentId);
-      }
+    } else if (fromGroupId) {
+      await this.removeStudentFromGroup(fromGroupId, studentId);
     }
 
-    // Create history record
-    const history = new this.historyModel({
-      student: studentId,
-      fromGroup: fromGroupId || undefined,
-      toGroup: toGroupId || undefined,
-      movedBy: movedBy || undefined,
-      reason,
+    const history = this.historyRepo.create({
+      student,
+      fromGroup: fromGroupId
+        ? await this.groupRepo.findOne({ where: { _id: fromGroupId } })
+        : null,
+      toGroup: toGroupId
+        ? await this.groupRepo.findOne({ where: { _id: toGroupId } })
+        : null,
+      movedBy: movedBy
+        ? await this.historyRepo.manager.getRepository(User).findOne({
+            where: { _id: movedBy },
+          })
+        : null,
+      reason: reason ?? null,
+      movedAt: new Date(),
     });
-    await history.save();
+    await this.historyRepo.save(history);
 
-    return this.studentModel.findById(studentId).populate('group').populate('course').exec();
+    const updated = await this.studentRepo.findOne({
+      where: { _id: studentId },
+      relations: ['group', 'course'],
+    });
+    if (!updated) {
+      throw new NotFoundException('Student not found');
+    }
+    return updated;
   }
 
-  async getUnassignedStudents(courseId: string): Promise<StudentDocument[]> {
-    return this.studentModel
-      .find({
-        course: courseId,
-        $or: [{ group: { $exists: false } }, { group: null }],
-      })
-      .populate('course')
-      .populate('employee')
-      .exec();
+  async getUnassignedStudents(courseId: string): Promise<Student[]> {
+    return this.studentRepo.find({
+      where: { course: { _id: courseId }, group: IsNull() },
+      relations: ['course', 'employee'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async getStudentHistory(studentId: string): Promise<GroupHistoryDocument[]> {
-    return this.historyModel
-      .find({ student: studentId })
-      .populate('fromGroup')
-      .populate('toGroup')
-      .populate('movedBy')
-      .sort({ movedAt: -1 })
-      .exec();
+  async getStudentHistory(studentId: string): Promise<GroupHistory[]> {
+    return this.historyRepo.find({
+      where: { student: { _id: studentId } },
+      relations: ['fromGroup', 'toGroup', 'movedBy'],
+      order: { movedAt: 'DESC' },
+    });
   }
 }
-

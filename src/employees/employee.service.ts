@@ -1,66 +1,99 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Employee, EmployeeDocument } from './schemas/employee.schema';
+import { Employee } from '../database/entities/employee.entity';
+import { Department } from '../database/entities/department.entity';
+import { Position } from '../database/entities/position.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UsersService } from '../users/user.service';
 
-const STAFF_ROLES = ['teacher', 'admin', 'moderator', 'manager', 'crm', 'director'] as const;
+const STAFF_ROLES = [
+  'teacher',
+  'admin',
+  'moderator',
+  'manager',
+  'crm',
+  'director',
+] as const;
+const PUBLIC_STAFF_ROLES = ['teacher', 'manager', 'crm', 'director'] as const;
+
+function toEmployeeShape(e: Employee) {
+  return {
+    ...e,
+    department_id: e.department
+      ? { _id: e.department._id, name: e.department.name, code: e.department.code }
+      : e.department,
+    position_id: e.position
+      ? { _id: e.position._id, name: e.position.name, code: e.position.code }
+      : e.position,
+  };
+}
 
 @Injectable()
 export class EmployeesService {
   constructor(
-    @InjectModel(Employee.name) private employeeModel: Model<EmployeeDocument>,
+    @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
+    @InjectRepository(Department) private departmentRepo: Repository<Department>,
+    @InjectRepository(Position) private positionRepo: Repository<Position>,
     private usersService: UsersService,
   ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Employee> {
-    const employeeData: any = { ...createEmployeeDto };
-    
+    let department: Department | null = null;
+    let position: Position | null = null;
+
     if (createEmployeeDto.department_id) {
-      employeeData.department_id = new Types.ObjectId(createEmployeeDto.department_id);
+      department = await this.departmentRepo.findOne({
+        where: { _id: createEmployeeDto.department_id },
+      });
     }
-    
     if (createEmployeeDto.position_id) {
-      employeeData.position_id = new Types.ObjectId(createEmployeeDto.position_id);
+      position = await this.positionRepo.findOne({
+        where: { _id: createEmployeeDto.position_id },
+      });
     }
 
-    // Hash password if provided
-    if (createEmployeeDto.password) {
-      employeeData.password = await bcrypt.hash(createEmployeeDto.password, 10);
-    }
-    
-    const employee = new this.employeeModel(employeeData);
-    return employee.save();
+    const password = createEmployeeDto.password
+      ? await bcrypt.hash(createEmployeeDto.password, 10)
+      : null;
+
+    const emp = this.employeeRepo.create({
+      name: createEmployeeDto.name,
+      role: createEmployeeDto.role,
+      description1: createEmployeeDto.description1,
+      image: createEmployeeDto.image,
+      order: createEmployeeDto.order ?? 0,
+      is_active: createEmployeeDto.is_active !== false,
+      is_public: createEmployeeDto.is_public !== false,
+      department,
+      position,
+      login: createEmployeeDto.login ?? null,
+      password,
+    });
+
+    return this.employeeRepo.save(emp);
   }
 
   async findAll(): Promise<any[]> {
-    // Get employees (active + public only for landing)
-    const employees = await this.employeeModel
-      .find({ is_active: true, is_public: { $ne: false } })
-      .populate('department_id', 'name code')
-      .populate('position_id', 'name code')
-      .sort({ order: 1 })
-      .exec();
+    const employees = await this.employeeRepo.find({
+      where: { is_active: true },
+      relations: ['department', 'position'],
+      order: { order: 'ASC' },
+    });
+    const publicEmps = employees.filter((e) => e.is_public !== false);
 
-    // Get staff users — active + public only for landing
     const users = await this.usersService.findAll();
     const staffUsers = users.filter(
       (user) =>
-        STAFF_ROLES.includes(user.role as any) &&
+        PUBLIC_STAFF_ROLES.includes(user.role as any) &&
         user.is_active &&
-        user.is_public !== false
+        user.is_public !== false,
     );
 
-    // Transform employees - convert image paths to full URLs
-    const employeesWithFullUrls = employees.map((employee) => ({
-      ...employee.toObject(),
-      image: employee.image,
-    }));
+    const employeesWithFullUrls = publicEmps.map((e) => toEmployeeShape(e));
 
-    // Transform users to employee-like format
     const userEmployees = staffUsers.map((user, index) => ({
       _id: user._id,
       name: user.full_name,
@@ -77,33 +110,24 @@ export class EmployeesService {
       phone: user.phone,
     }));
 
-    const allStaff = [...employeesWithFullUrls, ...userEmployees].sort((a, b) =>
-      (a.order || 0) - (b.order || 0)
+    return [...employeesWithFullUrls, ...userEmployees].sort(
+      (a, b) => (a.order || 0) - (b.order || 0),
     );
-
-    return allStaff;
   }
 
   async findAllAdmin(): Promise<any[]> {
-    // Get all employees (including inactive)
-    const employees = await this.employeeModel
-      .find()
-      .populate('department_id', 'name code')
-      .populate('position_id', 'name code')
-      .sort({ order: 1 })
-      .exec();
-    
-    // Get all users with staff roles (including inactive; admin list shows all)
+    const employees = await this.employeeRepo.find({
+      relations: ['department', 'position'],
+      order: { order: 'ASC' },
+    });
+
     const users = await this.usersService.findAll();
-    const staffUsers = users.filter((user) => STAFF_ROLES.includes(user.role as any));
-    
-    // Transform employees - convert image paths to full URLs
-    const employeesWithFullUrls = employees.map(employee => ({
-      ...employee.toObject(),
-      image: employee.image,
-    }));
-    
-    // Transform users to employee-like format
+    const staffUsers = users.filter((user) =>
+      STAFF_ROLES.includes(user.role as any),
+    );
+
+    const employeesWithFullUrls = employees.map((e) => toEmployeeShape(e));
+
     const userEmployees = staffUsers.map((user, index) => ({
       _id: user._id,
       name: user.full_name,
@@ -120,102 +144,116 @@ export class EmployeesService {
       phone: user.phone,
     }));
 
-    const allStaff = [...employeesWithFullUrls, ...userEmployees].sort((a, b) =>
-      (a.order || 0) - (b.order || 0)
+    return [...employeesWithFullUrls, ...userEmployees].sort(
+      (a, b) => (a.order || 0) - (b.order || 0),
     );
-
-    return allStaff;
   }
 
   async findOne(id: string): Promise<any> {
-    const employee = await this.employeeModel
-      .findById(id)
-      .populate('department_id', 'name code')
-      .populate('position_id', 'name code')
-      .exec();
+    const employee = await this.employeeRepo.findOne({
+      where: { _id: id },
+      relations: ['department', 'position'],
+    });
     if (!employee) {
       throw new NotFoundException('Employee not found');
     }
-    // Convert image path to full URL
-    return {
-      ...employee.toObject(),
-      image: employee.image,
-    };
+    return toEmployeeShape(employee);
   }
 
-async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<any> {
-  const updateData: any = { ...updateEmployeeDto };
+  async update(id: string, updateEmployeeDto: UpdateEmployeeDto): Promise<any> {
+    const updateData: any = { ...updateEmployeeDto };
 
-  if (updateEmployeeDto.password) {
-    updateData.password = await bcrypt.hash(updateEmployeeDto.password, 10);
+    if (updateEmployeeDto.password) {
+      updateData.password = await bcrypt.hash(updateEmployeeDto.password, 10);
+    }
+
+    const employee = await this.employeeRepo.findOne({ where: { _id: id } });
+    if (employee) {
+      if (updateData.name !== undefined) employee.name = updateData.name;
+      if (updateData.role !== undefined) employee.role = updateData.role;
+      if (updateData.description1 !== undefined) {
+        employee.description1 = updateData.description1;
+      }
+      if (updateData.image !== undefined) employee.image = updateData.image;
+      if (updateData.order !== undefined) employee.order = updateData.order;
+      if (updateData.is_active !== undefined) {
+        employee.is_active = updateData.is_active;
+      }
+      if (updateData.is_public !== undefined) {
+        employee.is_public = updateData.is_public;
+      }
+      if (updateData.login !== undefined) employee.login = updateData.login;
+      if (updateData.password !== undefined) {
+        employee.password = updateData.password;
+      }
+      if (updateData.department_id !== undefined) {
+        employee.department = updateData.department_id
+          ? await this.departmentRepo.findOne({
+              where: { _id: updateData.department_id },
+            })
+          : null;
+      }
+      if (updateData.position_id !== undefined) {
+        employee.position = updateData.position_id
+          ? await this.positionRepo.findOne({
+              where: { _id: updateData.position_id },
+            })
+          : null;
+      }
+      return this.employeeRepo.save(employee);
+    }
+
+    let user: Awaited<ReturnType<UsersService['findOne']>> | null = null;
+    try {
+      user = await this.usersService.findOne(id);
+    } catch {
+      user = null;
+    }
+    if (user && STAFF_ROLES.includes(user.role as any)) {
+      const userPayload: any = {
+        full_name: updateData.name ?? user.full_name,
+        is_active: updateData.is_active ?? user.is_active,
+        is_public: updateData.is_public ?? user.is_public,
+        avatar_url: updateData.image ? `${updateData.image}` : user.avatar_url,
+      };
+      if (updateData.role !== undefined) userPayload.role = updateData.role;
+      return this.usersService.update(id, userPayload);
+    }
+
+    throw new NotFoundException('Employee not found');
   }
-
-  // 1️⃣ Employee collection
-  const employee = await this.employeeModel
-    .findByIdAndUpdate(id, updateData, { new: true })
-    .exec();
-
-  if (employee) return employee;
-
-  // 2️⃣ User collection
-  const user = await this.usersService.findOne(id);
-
-  if (user && STAFF_ROLES.includes(user.role as any)) {
-    const userPayload: any = {
-      full_name: updateData.name ?? user.full_name,
-      is_active: updateData.is_active ?? user.is_active,
-      is_public: updateData.is_public ?? user.is_public,
-      avatar_url: updateData.image ? `${updateData.image}` : user.avatar_url,
-    };
-    if (updateData.role !== undefined) userPayload.role = updateData.role;
-    return this.usersService.update(id, userPayload);
-  }
-
-  throw new NotFoundException('Employee not found');
-}
 
   async changePassword(id: string, newPassword: string): Promise<void> {
-    const employee = await this.employeeModel.findById(id).exec();
+    const employee = await this.employeeRepo.findOne({ where: { _id: id } });
     if (!employee) {
       throw new NotFoundException('Employee not found');
     }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password
-    await this.employeeModel.findByIdAndUpdate(id, { password: hashedPassword }).exec();
+    employee.password = await bcrypt.hash(newPassword, 10);
+    await this.employeeRepo.save(employee);
   }
 
   async remove(id: string): Promise<void> {
-    // First try to find in Employee collection
-    const employee = await this.employeeModel.findById(id).exec();
+    const employee = await this.employeeRepo.findOne({ where: { _id: id } });
     if (employee) {
-      await this.employeeModel.findByIdAndDelete(id).exec();
+      await this.employeeRepo.delete({ _id: id });
       return;
     }
-    
-    // If not found in Employee collection, try User collection
-    // Check if it's a user with role teacher, admin, or moderator
+
     try {
       const user = await this.usersService.findOne(id);
       if (user && STAFF_ROLES.includes(user.role as any)) {
         await this.usersService.remove(id);
         return;
-      } else if (user) {
-        // User found but not a staff user (not teacher/admin/moderator)
-        throw new NotFoundException('Employee not found - user is not a staff member');
       }
-    } catch (error) {
-      // If it's already a NotFoundException, re-throw it
-      if (error instanceof NotFoundException) {
-        throw error;
+      if (user) {
+        throw new NotFoundException(
+          'Employee not found - user is not a staff member',
+        );
       }
-      // Otherwise, user not found or other error - continue to throw NotFoundException below
+    } catch (e) {
+      if (e instanceof NotFoundException) throw e;
     }
-    
-    // If neither found, throw NotFoundException
+
     throw new NotFoundException('Employee not found');
   }
 }
-

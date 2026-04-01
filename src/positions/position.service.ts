@@ -1,54 +1,53 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Position, PositionDocument } from './schemas/position.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Position } from '../database/entities/position.entity';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 
 @Injectable()
 export class PositionsService {
   constructor(
-    @InjectModel(Position.name) private positionModel: Model<PositionDocument>,
+    @InjectRepository(Position) private positionRepo: Repository<Position>,
   ) {}
 
   async create(createPositionDto: CreatePositionDto): Promise<Position> {
-    const position = new this.positionModel(createPositionDto);
-    return position.save();
+    const position = this.positionRepo.create(createPositionDto);
+    return this.positionRepo.save(position);
   }
 
   async findAll(): Promise<Position[]> {
-    return this.positionModel.find({ is_active: true }).sort({ name: 1 }).exec();
+    return this.positionRepo.find({
+      where: { is_active: true },
+      order: { name: 'ASC' },
+    });
   }
 
   async findAllAdmin(): Promise<Position[]> {
-    return this.positionModel.find().sort({ name: 1 }).exec();
+    return this.positionRepo.find({ order: { name: 'ASC' } });
   }
 
   async findOne(id: string): Promise<Position> {
-    const position = await this.positionModel.findById(id).exec();
+    const position = await this.positionRepo.findOne({ where: { _id: id } });
     if (!position) {
       throw new NotFoundException('Position not found');
     }
     return position;
   }
 
-  async update(id: string, updatePositionDto: UpdatePositionDto): Promise<Position> {
-    const position = await this.positionModel
-      .findByIdAndUpdate(id, updatePositionDto, { new: true })
-      .exec();
-
-    if (!position) {
-      throw new NotFoundException('Position not found');
-    }
-
-    return position;
+  async update(
+    id: string,
+    updatePositionDto: UpdatePositionDto,
+  ): Promise<Position> {
+    const position = await this.findOne(id);
+    Object.assign(position, updatePositionDto);
+    return this.positionRepo.save(position);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.positionModel.findByIdAndDelete(id).exec();
-    if (!result) {
+    const result = await this.positionRepo.delete({ _id: id });
+    if (!result.affected) {
       throw new NotFoundException('Position not found');
     }
   }
 }
-

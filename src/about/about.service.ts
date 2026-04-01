@@ -1,32 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { About, AboutDocument } from './schemas/about.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { About } from '../database/entities/about.entity';
 import { UpdateAboutDto } from './dto/update-about.dto';
 
 @Injectable()
 export class AboutService {
-  constructor(@InjectModel(About.name) private aboutModel: Model<AboutDocument>) {}
+  constructor(
+    @InjectRepository(About) private aboutRepo: Repository<About>,
+  ) {}
 
   async findOne(): Promise<About | null> {
-    return this.aboutModel.findOne({ is_active: true }).exec();
+    return this.aboutRepo.findOne({ where: { is_active: true } });
   }
 
   async findOneAdmin(): Promise<About | null> {
-    return this.aboutModel.findOne().exec();
+    const rows = await this.aboutRepo.find({
+      order: { createdAt: 'ASC' },
+      take: 1,
+    });
+    return rows[0] ?? null;
   }
 
   async createOrUpdate(updateAboutDto: UpdateAboutDto): Promise<About> {
-    const existing = await this.aboutModel.findOne().exec();
-    
+    const rows = await this.aboutRepo.find({
+      order: { createdAt: 'ASC' },
+      take: 1,
+    });
+    const existing = rows[0];
+
     if (existing) {
-      return this.aboutModel
-        .findByIdAndUpdate(existing._id, updateAboutDto, { new: true })
-        .exec();
-    } else {
-      const about = new this.aboutModel(updateAboutDto);
-      return about.save();
+      Object.assign(existing, updateAboutDto);
+      return this.aboutRepo.save(existing);
     }
+
+    const row = this.aboutRepo.create(
+      updateAboutDto as Partial<About>,
+    ) as About;
+    return this.aboutRepo.save(row);
   }
 }
-

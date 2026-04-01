@@ -1,18 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatisticsService } from './statistics.service';
 import { StatisticsController } from './statistics.controller';
-import { Statistics, StatisticsSchema } from './schemas/statistics.schema';
+import { Statistics } from '../database/entities/statistics.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: Statistics.name, schema: StatisticsSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([Statistics])],
   controllers: [StatisticsController],
   providers: [StatisticsService],
   exports: [StatisticsService],
 })
 export class StatisticsModule {}
-

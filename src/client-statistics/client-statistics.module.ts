@@ -1,15 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientStatisticsService } from './client-statistics.service';
 import { ClientStatisticsController } from './client-statistics.controller';
-import { ClientStatistics, ClientStatisticsSchema } from './schemas/client-statistics.schema';
+import { ClientStatistics } from '../database/entities/client-statistics.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: ClientStatistics.name, schema: ClientStatisticsSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([ClientStatistics])],
   controllers: [ClientStatisticsController],
   providers: [ClientStatisticsService],
   exports: [ClientStatisticsService],

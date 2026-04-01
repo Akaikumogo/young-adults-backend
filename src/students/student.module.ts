@@ -1,24 +1,18 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { StudentsService } from './student.service';
 import { StudentsController } from './student.controller';
-import { Student, StudentSchema } from './schemas/student.schema';
-import { Group, GroupSchema } from '../groups/schemas/group.schema';
-import { Course, CourseSchema } from '../courses/schemas/course.schema';
-import { Employee, EmployeeSchema } from '../employees/schemas/employee.schema';
+import { Student } from '../database/entities/student.entity';
+import { Group } from '../database/entities/group.entity';
+import { Course } from '../database/entities/course.entity';
+import { Employee } from '../database/entities/employee.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Student.name, schema: StudentSchema },
-      { name: Group.name, schema: GroupSchema },
-      { name: Course.name, schema: CourseSchema },
-      { name: Employee.name, schema: EmployeeSchema },
-    ]),
+    TypeOrmModule.forFeature([Student, Group, Course, Employee]),
   ],
   controllers: [StudentsController],
   providers: [StudentsService],
   exports: [StudentsService],
 })
 export class StudentsModule {}
-

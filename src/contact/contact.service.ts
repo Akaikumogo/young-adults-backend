@@ -1,25 +1,27 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Contact, ContactDocument } from './schemas/contact.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Contact } from '../database/entities/contact.entity';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 
 @Injectable()
 export class ContactService {
-  constructor(@InjectModel(Contact.name) private contactModel: Model<ContactDocument>) {}
+  constructor(
+    @InjectRepository(Contact) private contactRepo: Repository<Contact>,
+  ) {}
 
   async create(createContactDto: CreateContactDto): Promise<Contact> {
-    const contact = new this.contactModel(createContactDto);
-    return contact.save();
+    const contact = this.contactRepo.create(createContactDto);
+    return this.contactRepo.save(contact);
   }
 
   async findAll(): Promise<Contact[]> {
-    return this.contactModel.find().sort({ createdAt: -1 }).exec();
+    return this.contactRepo.find({ order: { createdAt: 'DESC' } });
   }
 
   async findOne(id: string): Promise<Contact> {
-    const contact = await this.contactModel.findById(id).exec();
+    const contact = await this.contactRepo.findOne({ where: { _id: id } });
     if (!contact) {
       throw new NotFoundException('Contact not found');
     }
@@ -27,22 +29,15 @@ export class ContactService {
   }
 
   async update(id: string, updateContactDto: UpdateContactDto): Promise<Contact> {
-    const contact = await this.contactModel
-      .findByIdAndUpdate(id, updateContactDto, { new: true })
-      .exec();
-
-    if (!contact) {
-      throw new NotFoundException('Contact not found');
-    }
-
-    return contact;
+    const contact = await this.findOne(id);
+    Object.assign(contact, updateContactDto);
+    return this.contactRepo.save(contact);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.contactModel.findByIdAndDelete(id).exec();
-    if (!result) {
+    const result = await this.contactRepo.delete({ _id: id });
+    if (!result.affected) {
       throw new NotFoundException('Contact not found');
     }
   }
 }
-

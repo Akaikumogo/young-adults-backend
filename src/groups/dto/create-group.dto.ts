@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, IsMongoId, IsArray, ArrayMinSize } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean, IsUUID, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateGroupDto {
@@ -12,8 +12,8 @@ export class CreateGroupDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
-  @IsMongoId()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsUUID()
   @IsNotEmpty()
   course: string;
 
@@ -38,8 +38,8 @@ export class CreateGroupDto {
   @IsOptional()
   endTime?: string;
 
-  @ApiProperty({ required: false, example: '507f1f77bcf86cd799439011' })
-  @IsMongoId()
+  @ApiProperty({ required: false, example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsUUID()
   @IsOptional()
   employee?: string;
 

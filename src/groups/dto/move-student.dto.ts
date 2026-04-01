@@ -1,13 +1,13 @@
-import { IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsUUID, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class MoveStudentDto {
-  @ApiProperty({ example: '507f1f77bcf86cd799439011' })
-  @IsMongoId()
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsUUID()
   studentId: string;
 
-  @ApiProperty({ required: false, example: '507f1f77bcf86cd799439012' })
-  @IsMongoId()
+  @ApiProperty({ required: false, example: '550e8400-e29b-41d4-a716-446655440001' })
+  @IsUUID()
   @IsOptional()
   toGroupId?: string;
 
@@ -16,4 +16,3 @@ export class MoveStudentDto {
   @IsOptional()
   reason?: string;
 }
-

@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { Vacation, VacationDocument } from './schemas/vacation.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Vacation } from '../database/entities/vacation.entity';
+import { Employee } from '../database/entities/employee.entity';
+import { Department } from '../database/entities/department.entity';
 import { CreateVacationDto } from './dto/create-vacation.dto';
 import { UpdateVacationDto } from './dto/update-vacation.dto';
 import { GetVacationsDto } from './dto/get-vacations.dto';
@@ -9,163 +11,172 @@ import { GetVacationsDto } from './dto/get-vacations.dto';
 @Injectable()
 export class VacationsService {
   constructor(
-    @InjectModel(Vacation.name) private vacationModel: Model<VacationDocument>,
+    @InjectRepository(Vacation) private vacationRepo: Repository<Vacation>,
+    @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
+    @InjectRepository(Department) private departmentRepo: Repository<Department>,
   ) {}
 
   async create(createVacationDto: CreateVacationDto): Promise<Vacation> {
-    const vacation = new this.vacationModel({
-      ...createVacationDto,
-      employee_id: new Types.ObjectId(createVacationDto.employee_id),
-      department_id: new Types.ObjectId(createVacationDto.department_id),
+    const employee = await this.employeeRepo.findOneOrFail({
+      where: { _id: createVacationDto.employee_id },
     });
-    return vacation.save();
+    const department = await this.departmentRepo.findOneOrFail({
+      where: { _id: createVacationDto.department_id },
+    });
+
+    const vacation = this.vacationRepo.create({
+      employee,
+      department,
+      year: createVacationDto.year,
+      month: createVacationDto.month,
+      has_vacation: createVacationDto.has_vacation,
+    });
+    return this.vacationRepo.save(vacation);
   }
 
   async findAll(query: GetVacationsDto): Promise<Vacation[]> {
-    const filter: any = {};
-    
-    if (query.year) {
-      filter.year = query.year;
+    const qb = this.vacationRepo
+      .createQueryBuilder('v')
+      .leftJoinAndSelect('v.employee', 'employee')
+      .leftJoinAndSelect('v.department', 'department')
+      .orderBy('v.year', 'DESC')
+      .addOrderBy('v.month', 'ASC');
+
+    if (query.year !== undefined) {
+      qb.andWhere('v.year = :year', { year: query.year });
     }
-    
     if (query.department_id) {
-      filter.department_id = new Types.ObjectId(query.department_id);
+      qb.andWhere('v.department_id = :did', { did: query.department_id });
     }
-    
     if (query.employee_id) {
-      filter.employee_id = new Types.ObjectId(query.employee_id);
+      qb.andWhere('v.employee_id = :eid', { eid: query.employee_id });
     }
 
-    return this.vacationModel
-      .find(filter)
-      .populate('employee_id', 'name role')
-      .populate('department_id', 'name code')
-      .sort({ year: -1, month: 1 })
-      .exec();
+    return qb.getMany();
   }
 
   async findOne(id: string): Promise<Vacation> {
-    const vacation = await this.vacationModel
-      .findById(id)
-      .populate('employee_id')
-      .populate('department_id')
-      .exec();
-    
+    const vacation = await this.vacationRepo.findOne({
+      where: { _id: id },
+      relations: ['employee', 'department'],
+    });
     if (!vacation) {
       throw new NotFoundException('Vacation not found');
     }
-    
     return vacation;
   }
 
-  async findByEmployeeAndYear(employeeId: string, year: number): Promise<Vacation[]> {
-    return this.vacationModel
-      .find({
-        employee_id: new Types.ObjectId(employeeId),
-        year: year,
-      })
-      .sort({ month: 1 })
-      .exec();
+  async findByEmployeeAndYear(
+    employeeId: string,
+    year: number,
+  ): Promise<Vacation[]> {
+    return this.vacationRepo.find({
+      where: { employee: { _id: employeeId }, year },
+      order: { month: 'ASC' },
+    });
   }
 
-  async findByDepartmentAndYear(departmentId: string, year: number): Promise<Vacation[]> {
-    return this.vacationModel
-      .find({
-        department_id: new Types.ObjectId(departmentId),
-        year: year,
-      })
-      .populate('employee_id', 'name role')
-      .sort({ month: 1 })
-      .exec();
+  async findByDepartmentAndYear(
+    departmentId: string,
+    year: number,
+  ): Promise<Vacation[]> {
+    return this.vacationRepo.find({
+      where: { department: { _id: departmentId }, year },
+      relations: ['employee'],
+      order: { month: 'ASC' },
+    });
   }
 
   async getVacationStatsByYearAndDepartment(year: number): Promise<any[]> {
-    const stats = await this.vacationModel.aggregate([
-      {
-        $match: {
-          year: year,
-          has_vacation: true,
-        },
-      },
-      {
-        $group: {
-          _id: {
-            department_id: '$department_id',
-            month: '$month',
-          },
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: 'departments',
-          localField: '_id.department_id',
-          foreignField: '_id',
-          as: 'department',
-        },
-      },
-      {
-        $unwind: '$department',
-      },
-      {
-        $project: {
-          department_id: '$_id.department_id',
-          department_name: '$department.name',
-          month: '$_id.month',
-          count: 1,
-        },
-      },
-    ]);
+    const rows = await this.vacationRepo
+      .createQueryBuilder('v')
+      .innerJoin('v.department', 'd')
+      .select('v.department_id', 'department_id')
+      .addSelect('d.name', 'department_name')
+      .addSelect('v.month', 'month')
+      .addSelect('COUNT(*)', 'count')
+      .where('v.year = :year', { year })
+      .andWhere('v.has_vacation = true')
+      .groupBy('v.department_id')
+      .addGroupBy('d.name')
+      .addGroupBy('v.month')
+      .getRawMany();
 
-    return stats;
+    return rows.map((r) => ({
+      department_id: r.department_id,
+      department_name: r.department_name,
+      month: parseInt(r.month, 10),
+      count: parseInt(r.count, 10),
+    }));
   }
 
-  async upsertVacation(createVacationDto: CreateVacationDto): Promise<Vacation> {
-    const filter = {
-      employee_id: new Types.ObjectId(createVacationDto.employee_id),
-      year: createVacationDto.year,
-      month: createVacationDto.month,
-    };
+  async upsertVacation(
+    createVacationDto: CreateVacationDto,
+  ): Promise<Vacation> {
+    const employee = await this.employeeRepo.findOneOrFail({
+      where: { _id: createVacationDto.employee_id },
+    });
+    const department = await this.departmentRepo.findOneOrFail({
+      where: { _id: createVacationDto.department_id },
+    });
 
-    const update = {
-      department_id: new Types.ObjectId(createVacationDto.department_id),
-      has_vacation: createVacationDto.has_vacation,
-    };
+    let row = await this.vacationRepo.findOne({
+      where: {
+        employee: { _id: employee._id },
+        year: createVacationDto.year,
+        month: createVacationDto.month,
+      },
+    });
 
-    return this.vacationModel.findOneAndUpdate(
-      filter,
-      update,
-      { upsert: true, new: true }
-    ).exec();
+    if (!row) {
+      row = this.vacationRepo.create({
+        employee,
+        department,
+        year: createVacationDto.year,
+        month: createVacationDto.month,
+        has_vacation: createVacationDto.has_vacation,
+      });
+    } else {
+      row.department = department;
+      row.has_vacation = createVacationDto.has_vacation;
+    }
+
+    return this.vacationRepo.save(row);
   }
 
-  async update(id: string, updateVacationDto: UpdateVacationDto): Promise<Vacation> {
-    const updateData: any = { ...updateVacationDto };
-    
+  async update(
+    id: string,
+    updateVacationDto: UpdateVacationDto,
+  ): Promise<Vacation> {
+    const vacation = await this.findOne(id);
+
     if (updateVacationDto.employee_id) {
-      updateData.employee_id = new Types.ObjectId(updateVacationDto.employee_id);
+      vacation.employee = await this.employeeRepo.findOneOrFail({
+        where: { _id: updateVacationDto.employee_id },
+      });
     }
-    
     if (updateVacationDto.department_id) {
-      updateData.department_id = new Types.ObjectId(updateVacationDto.department_id);
+      vacation.department = await this.departmentRepo.findOneOrFail({
+        where: { _id: updateVacationDto.department_id },
+      });
+    }
+    if (updateVacationDto.year !== undefined) {
+      vacation.year = updateVacationDto.year;
+    }
+    if (updateVacationDto.month !== undefined) {
+      vacation.month = updateVacationDto.month;
+    }
+    if (updateVacationDto.has_vacation !== undefined) {
+      vacation.has_vacation = updateVacationDto.has_vacation;
     }
 
-    const vacation = await this.vacationModel
-      .findByIdAndUpdate(id, updateData, { new: true })
-      .exec();
-
-    if (!vacation) {
-      throw new NotFoundException('Vacation not found');
-    }
-
-    return vacation;
+    return this.vacationRepo.save(vacation);
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.vacationModel.findByIdAndDelete(id).exec();
-    if (!result) {
+    const result = await this.vacationRepo.delete({ _id: id });
+    if (!result.affected) {
       throw new NotFoundException('Vacation not found');
     }
   }
 }
-
