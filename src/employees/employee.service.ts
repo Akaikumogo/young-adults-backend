@@ -19,6 +19,20 @@ const STAFF_ROLES = [
 ] as const;
 const PUBLIC_STAFF_ROLES = ['teacher', 'manager', 'crm', 'director'] as const;
 
+function toPublicUploadPath(image?: string | null): string | null {
+  if (!image || image.trim() === '') return null;
+  if (!image.startsWith('http://') && !image.startsWith('https://')) {
+    return image;
+  }
+  try {
+    const url = new URL(image);
+    if (url.pathname.startsWith('/uploads/')) return url.pathname;
+    return image;
+  } catch {
+    return image;
+  }
+}
+
 function toEmployeeShape(e: Employee) {
   return {
     ...e,
@@ -28,6 +42,7 @@ function toEmployeeShape(e: Employee) {
     position_id: e.position
       ? { _id: e.position._id, name: e.position.name, code: e.position.code }
       : e.position,
+    image: toPublicUploadPath((e as any).image),
   };
 }
 
@@ -99,7 +114,7 @@ export class EmployeesService {
       name: user.full_name,
       role: user.role,
       description1: '',
-      image: user.avatar_url,
+      image: toPublicUploadPath(user.avatar_url),
       order: 1000 + index,
       is_active: user.is_active,
       is_public: user.is_public !== false,
@@ -133,7 +148,7 @@ export class EmployeesService {
       name: user.full_name,
       role: user.role,
       description1: '',
-      image: user.avatar_url,
+      image: toPublicUploadPath(user.avatar_url),
       order: 1000 + index,
       is_active: user.is_active,
       is_public: user.is_public !== false,

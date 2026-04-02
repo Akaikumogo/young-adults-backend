@@ -6,6 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { Request, Response } from 'express';
 import { NoCacheInterceptor } from './common/interceptors/no-cache.interceptor';
+import { NormalizeUploadsInterceptor } from './common/interceptors/normalize-uploads.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -26,7 +27,7 @@ async function bootstrap() {
 
   // Global interceptor to disable HTTP cache (prevent 304 responses)
   // Frontend (RTK Query) will handle caching internally
-  app.useGlobalInterceptors(new NoCacheInterceptor());
+  app.useGlobalInterceptors(new NoCacheInterceptor(), new NormalizeUploadsInterceptor());
 
   // Trust proxy to get correct origin from X-Forwarded-* headers
   app.set('trust proxy', true);
